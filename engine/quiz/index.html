@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Разбор за 2 минуты</title>
+<meta name="description" content="Несколько вопросов про твоё дело. В конце — разбор.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="quiz.config.js"></script>
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  /* Цвета приезжают из quiz.config.js → theme. Здесь — запасные значения,
+     если конфиг не загрузился. Правь конфиг, не этот блок. */
+  --void:        #04080A;
+  --void-2:      #06070B;
+  --graphite:    #101216;
+  --cyan:        #3FD8E0;
+  --cyan-deep:   #1A5A66;
+  --cyan-glow:   #DBFCFF;
+  --amber:       #FF7A2F;
+  --amber-hot:   #FFB061;
+  --amber-deep:  #C24A12;
+  --white:       #F2FEFF;
+  --marble:      #C8CDD5;
+  --muted:       #6A7A80;
+  --line:        rgba(63,216,224,.22);
+  --line-soft:   rgba(63,216,224,.12);
+  --card:        rgba(63,216,224,.035);
+  --card-hover:  rgba(63,216,224,.07);
+  --cyan-soft:   rgba(63,216,224,.12);
+  --amber-soft:  rgba(255,122,47,.14);
+  --font-head:   'Oswald';
+  --font-body:   'Space Grotesk';
+  --font-mono:   'JetBrains Mono';
+  --radius:      14px;
+  --radius-sm:   10px;
+  --radius-pill: 100px;
+  --ease:        cubic-bezier(.4,0,.2,1);
+}
+
+html { font-size: 16px; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--void);
+  color: var(--white);
+  min-height: 100vh; min-height: 100dvh;
+  overflow-x: hidden;
+  line-height: 1.55;
+}
+
+/* === Фоновые слои === */
+.bg-base {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 78% 8%, rgba(63,216,224,.10) 0%, transparent 62%),
+    radial-gradient(ellipse 50% 50% at 12% 96%, rgba(255,122,47,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(63,216,224,.03) 0%, transparent 70%);
+}
+.bg-grid {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
+  height: 46vh; min-height: 280px;
+  background-image:
+    linear-gradient(to right,  var(--line-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+  background-size: 46px 46px;
+  transform: perspective(320px) rotateX(58deg);
+  transform-origin: bottom center;
+  opacity: .5;
+  -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 88%);
+          mask-image: linear-gradient(to top, #000 0%, transparent 88%);
+}
+
+/* === Зерно и развёртка: плёночный финишный слой === */
+.fx-grain {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 150px;
+}
+.fx-scan {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .35;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0,0,0,.18) 2px 3px);
+}
+
+/* === HUD рамка-обрамление === */
+.hud { position: fixed; z-index: 40; pointer-events: none; font-family: var(--font-mono), monospace;
+       font-size: .62rem; letter-spacing: .22em; color: var(--muted); text-transform: uppercase; }
+.hud-tl { top: 14px; left: 16px; }
+.hud-tr { top: 14px; right: 16px; text-align: right; }
+.hud-bl { bottom: 14px; left: 16px; }
+.hud-br { bottom: 14px; right: 16px; text-align: right; }
+.hud .on { color: var(--cyan); }
+.hud .dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--cyan);
+            box-shadow:0 0 8px var(--cyan); margin-right:5px; animation: blink 2.4s infinite; vertical-align: middle; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+/* угловые скобки кадра */
+.hud-corner { position: fixed; z-index: 40; width: 26px; height: 26px; pointer-events: none; border: 1.5px solid var(--line); }
+.hc-tl { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+.hc-tr { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
+.hc-bl { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
+.hc-br { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+@media (max-width: 600px) { .hud-bl, .hud-br { display: none; } }
+
+/* === Прогресс === */
+.progress-wrap {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 3px; background: rgba(63,216,224,.10);
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--amber));
+  box-shadow: 0 0 16px rgba(63,216,224,.5);
+  transition: width .55s var(--ease);
+}
+
+/* === Контейнер === */
+.wrap {
+  position: relative; z-index: 10;
+  max-width: 640px; margin: 0 auto;
+  padding: 70px 22px 48px;
+  min-height: 100dvh;
+  display: flex; flex-direction: column;
+}
+
+/* === Экраны === */
+.screen { display: none; flex-direction: column; flex: 1; }
+.screen.active { display: flex; animation: screenIn .5s var(--ease) both; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+/* === Бейдж === */
+.badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 15px; border-radius: var(--radius-pill);
+  background: var(--amber-soft); border: 1px solid rgba(255,122,47,.32);
+  font-size: .76rem; font-weight: 500; color: var(--amber-hot);
+  width: fit-content; letter-spacing: .01em;
+  font-family: var(--font-mono), monospace;
+}
+.badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--amber);
+                 box-shadow:0 0 9px var(--amber); animation: blink 2s infinite; }
+
+/* === Фасад === */
+.facade { justify-content: center; }
+.facade-statue {
+  position: absolute; top: 50%; right: -2%; transform: translateY(-50%);
+  width: 46%; max-width: 420px; z-index: -1; pointer-events: none;
+}
+.facade-statue::before {  /* холодное свечение за статуёй */
+  content: ''; position: absolute; inset: -8% -10% -8% -2%;
+  background: radial-gradient(ellipse 60% 55% at 52% 40%, rgba(63,216,224,.22) 0%, transparent 70%);
+  filter: blur(4px); z-index: -1;
+}
+.facade-statue img {
+  width: 100%; display: block;
+  mix-blend-mode: screen; opacity: .95;
+  -webkit-mask-image: radial-gradient(ellipse 74% 82% at 50% 44%, #000 58%, transparent 84%);
+          mask-image: radial-gradient(ellipse 74% 82% at 50% 44%, #000 58%, transparent 84%);
+}
+@media (max-width: 759px) {
+  .facade-statue { right: -18%; top: 13%; transform: none; width: 76%; }
+  .facade-statue img { opacity: .4; }
+  .facade { justify-content: flex-start; padding-top: 5vh; }
+}
+
+.kicker {
+  font-family: var(--font-mono), monospace; font-size: .72rem; letter-spacing: .26em;
+  text-transform: uppercase; color: var(--cyan); margin-bottom: 22px;
+}
+h1 {
+  font-family: var(--font-head), sans-serif; font-weight: 700;
+  font-size: clamp(2.15rem, 7.2vw, 3.7rem); line-height: 1.04;
+  letter-spacing: -.01em; text-transform: uppercase; margin-bottom: 22px;
+  max-width: 12ch;
+}
+h1 .amber { color: var(--amber); }
+.sub {
+  font-size: clamp(1rem, 2.2vw, 1.16rem); color: var(--marble);
+  line-height: 1.66; max-width: 30rem; margin-bottom: 18px;
+}
+.sub b { color: var(--white); font-weight: 500; }
+.support {
+  font-size: .9rem; color: var(--muted); line-height: 1.6;
+  max-width: 28rem; margin-bottom: 34px;
+  padding-left: 14px; border-left: 2px solid var(--line);
+}
+
+/* === Кнопки === */
+.btn {
+  font-family: var(--font-body), sans-serif; font-weight: 700;
+  border: none; cursor: pointer; transition: all .25s var(--ease);
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: var(--radius-pill); letter-spacing: .01em;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--amber); color: #1a0c03;
+  padding: 16px 34px; font-size: 1.04rem;
+  box-shadow: 0 6px 26px rgba(255,122,47,.32);
+}
+.btn-primary:hover { background: var(--amber-hot); transform: translateY(-2px); box-shadow: 0 10px 34px rgba(255,122,47,.42); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary .arr { transition: transform .25s var(--ease); }
+.btn-primary:hover .arr { transform: translateX(4px); }
+.btn-ghost {
+  background: transparent; color: var(--cyan);
+  border: 1px solid var(--line); padding: 14px 26px; font-size: .95rem; font-weight: 500;
+}
+.btn-ghost:hover { background: var(--cyan-soft); border-color: rgba(63,216,224,.4); }
+.btn-row { display: flex; gap: 12px; align-items: center; margin-top: 30px; flex-wrap: wrap; }
+.btn-start { padding: 18px 40px; font-size: 1.1rem; }
+
+/* === Шапка вопроса === */
+.q-head { margin-bottom: 26px; }
+.q-counter {
+  font-family: var(--font-mono), monospace; font-size: .72rem; letter-spacing: .22em;
+  color: var(--cyan); text-transform: uppercase; margin-bottom: 14px;
+}
+.q-counter .tot { color: var(--muted); }
+.q-title {
+  font-family: var(--font-head), sans-serif; font-weight: 600; text-transform: uppercase;
+  font-size: clamp(1.35rem, 4.4vw, 1.85rem); line-height: 1.16; letter-spacing: -.005em;
+}
+.q-note { font-size: .9rem; color: var(--muted); margin-top: 10px; line-height: 1.55; }
+
+/* === Варианты (примерки) === */
+.options { display: flex; flex-direction: column; gap: 11px; }
+.opt {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 18px; border-radius: var(--radius);
+  background: var(--card); border: 1px solid var(--line-soft);
+  cursor: pointer; transition: all .2s var(--ease); user-select: none;
+  min-height: 56px; position: relative;
+}
+.opt:hover { background: var(--card-hover); border-color: var(--line); transform: translateX(2px); }
+.opt.sel { background: var(--cyan-soft); border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 22px rgba(63,216,224,.12); }
+.opt-mark {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center;
+  transition: all .2s var(--ease);
+}
+.opt.sel .opt-mark { border-color: var(--amber); }
+.opt-mark::after { content:''; width: 10px; height: 10px; border-radius: 50%; background: var(--amber);
+                   box-shadow: 0 0 10px var(--amber); transform: scale(0); transition: transform .2s var(--ease); }
+.opt.sel .opt-mark::after { transform: scale(1); }
+.opt-label { font-size: .98rem; color: var(--white); line-height: 1.4; }
+.opt.sel .opt-label { color: var(--cyan-glow); }
+
+/* варианты-чипы (сфера) */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip {
+  padding: 12px 18px; border-radius: var(--radius-pill);
+  background: var(--card); border: 1px solid var(--line-soft);
+  cursor: pointer; transition: all .2s var(--ease); user-select: none;
+  font-size: .94rem; color: var(--white);
+}
+.chip:hover { background: var(--card-hover); border-color: var(--line); }
+.chip.sel { background: var(--cyan-soft); border-color: var(--cyan); color: var(--cyan-glow); box-shadow: 0 0 0 1px var(--cyan); }
+
+/* поля ввода */
+.field {
+  width: 100%; padding: 15px 18px; margin-top: 14px;
+  background: var(--card); border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm); color: var(--white);
+  font-family: inherit; font-size: .98rem; transition: all .2s var(--ease);
+  outline: none; -webkit-appearance: none;
+}
+.field::placeholder { color: var(--muted); }
+.field:focus { border-color: var(--cyan); background: var(--card-hover); box-shadow: 0 0 0 3px rgba(63,216,224,.1); }
+textarea.field { resize: vertical; min-height: 92px; line-height: 1.5; }
+.hidden { display: none !important; }
+
+.q-foot { margin-top: 30px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.skip-link {
+  font-size: .9rem; color: var(--muted); cursor: pointer; text-decoration: none;
+  border-bottom: 1px dashed var(--line); padding-bottom: 1px; transition: color .2s;
+}
+.skip-link:hover { color: var(--cyan); }
+.q-sign {
+  font-size: .82rem; color: var(--muted); margin-top: 16px; line-height: 1.55;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.q-sign img { width: 30px; height: 30px; mix-blend-mode: screen; flex-shrink: 0; margin-top: -3px; }
+
+/* === Микро-комментарий === */
+.interlude { justify-content: center; text-align: left; }
+.interlude .il-tag {
+  font-family: var(--font-mono), monospace; font-size: .72rem; letter-spacing: .24em;
+  color: var(--cyan); text-transform: uppercase; margin-bottom: 18px;
+}
+.interlude .il-text {
+  font-family: var(--font-head), sans-serif; font-weight: 500; text-transform: none;
+  font-size: clamp(1.3rem, 4vw, 1.7rem); line-height: 1.32; color: var(--white); max-width: 24ch;
+}
+.interlude .il-text b { color: var(--cyan); font-weight: 600; }
+
+/* === Сцена сборки === */
+.assembly { justify-content: center; align-items: center; text-align: center; }
+.asm-ring { width: 96px; height: 96px; position: relative; margin-bottom: 34px; }
+.asm-ring::before, .asm-ring::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent;
+}
+.asm-ring::before { border-top-color: var(--cyan); border-right-color: var(--cyan); animation: spin 1s linear infinite; }
+.asm-ring::after { inset: 14px; border-bottom-color: var(--amber); border-left-color: var(--amber); animation: spin 1.4s linear infinite reverse; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.asm-text {
+  font-family: var(--font-head), sans-serif; font-weight: 600; text-transform: uppercase;
+  font-size: clamp(1.15rem, 3.6vw, 1.5rem); letter-spacing: .01em; color: var(--white);
+}
+.asm-meta {
+  font-family: var(--font-mono), monospace; font-size: .82rem; color: var(--cyan);
+  margin-top: 14px; letter-spacing: .05em; min-height: 1.2em;
+}
+
+/* === Финал === */
+.result { padding-top: 8px; }
+.res-reveal { font-family: var(--font-mono), monospace; font-size: .72rem; letter-spacing: .24em;
+              text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+/* эхо-типографика имени класса */
+.res-echo { position: relative; margin-bottom: 8px; }
+.res-echo .echo-ghost {
+  font-family: var(--font-head), sans-serif; font-weight: 700; text-transform: uppercase;
+  font-size: clamp(2rem, 8vw, 3.4rem); line-height: .96; letter-spacing: -.01em;
+  color: transparent; -webkit-text-stroke: 1px rgba(63,216,224,.22); position: absolute; left: 0; top: 0;
+}
+.res-echo .echo-ghost.g1 { transform: translateY(10px); opacity: .5; }
+.res-echo .echo-ghost.g2 { transform: translateY(20px); opacity: .25; }
+.res-class {
+  font-family: var(--font-head), sans-serif; font-weight: 700; text-transform: uppercase;
+  font-size: clamp(2rem, 8vw, 3.4rem); line-height: .96; letter-spacing: -.01em;
+  color: var(--cyan); position: relative; z-index: 2;
+}
+.res-class .amber { color: var(--amber); }
+.res-lead { font-size: 1.05rem; color: var(--marble); line-height: 1.6; margin: 18px 0 26px; max-width: 32rem; }
+
+.res-echo-quote {
+  background: var(--card); border: 1px solid var(--line-soft); border-left: 2px solid var(--amber);
+  border-radius: var(--radius-sm); padding: 16px 18px; margin-bottom: 26px;
+  font-size: .98rem; color: var(--white); line-height: 1.6;
+}
+.res-echo-quote .lbl { display:block; font-family:var(--font-mono), monospace; font-size:.66rem;
+  letter-spacing:.2em; text-transform:uppercase; color: var(--muted); margin-bottom: 8px; }
+.res-echo-quote em { color: var(--cyan); font-style: normal; }
+
+.bundles-h {
+  font-family:var(--font-mono), monospace; font-size:.72rem; letter-spacing:.2em;
+  text-transform:uppercase; color: var(--cyan); margin-bottom: 14px;
+}
+.bundles { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+.bundle {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 16px 18px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line-soft);
+}
+.bundle .num {
+  font-family:var(--font-mono), monospace; font-size: .8rem; color: var(--amber); flex-shrink: 0;
+  border: 1px solid rgba(255,122,47,.4); border-radius: 7px; width: 30px; height: 30px;
+  display:flex; align-items:center; justify-content:center; margin-top: 1px;
+}
+.bundle .b-body { font-size: .96rem; line-height: 1.5; }
+.bundle .b-body .when { display:block; font-family:var(--font-mono), monospace; font-size:.66rem;
+  letter-spacing:.14em; text-transform:uppercase; color: var(--muted); margin-bottom: 4px; }
+.bundle .b-body b { color: var(--white); font-weight: 500; }
+
+.res-story {
+  font-size: .94rem; color: var(--marble); line-height: 1.65; margin-bottom: 30px;
+  padding: 16px 18px; background: rgba(16,18,22,.5); border-radius: var(--radius); border: 1px solid var(--line-soft);
+}
+
+/* CTA финала */
+.cta-zone { display: flex; flex-direction: column; gap: 0; }
+.cta-stacy {
+  display: flex; gap: 14px; align-items: center; margin-bottom: 16px;
+  font-size: .92rem; color: var(--marble);
+}
+.cta-stacy img { width: 42px; height: 42px; mix-blend-mode: screen; flex-shrink: 0; }
+.cta-stacy b { color: var(--cyan); font-weight: 600; }
+.btn-cta {
+  width: 100%; padding: 18px 26px; font-size: 1.06rem; text-align: center; line-height: 1.3;
+}
+.cta-remind {
+  text-align: center; margin-top: 16px;
+}
+.cta-remind a { font-size: .9rem; color: var(--muted); cursor: pointer; border-bottom: 1px dashed var(--line); text-decoration: none; }
+.cta-remind a:hover { color: var(--cyan); }
+.remind-box { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+.remind-box .field { margin-top: 0; flex: 1; min-width: 180px; }
+.remind-box .btn-ghost { padding: 14px 22px; }
+.remind-ok { text-align:center; margin-top: 14px; color: var(--cyan); font-size: .92rem; }
+.res-fix {
+  margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line-soft);
+  font-family:var(--font-mono), monospace; font-size: .78rem; letter-spacing: .04em;
+  color: var(--muted); text-align: center; line-height: 1.6;
+}
+.res-fix .on { color: var(--amber-hot); }
+/* код для фолбэка + подсказка автокопирования */
+.cta-code {
+  margin-top: 12px; font-size: .88rem; color: var(--muted);
+  text-align: center; line-height: 1.6;
+}
+.cta-code strong {
+  color: var(--cyan); font-family: var(--font-mono), monospace;
+  font-size: .9rem; letter-spacing: .04em;
+}
+.copy-hint {
+  display: block; text-align: center; margin-top: 6px;
+  font-family: var(--font-mono), monospace; font-size: .76rem;
+  letter-spacing: .08em; color: var(--cyan); opacity: 0;
+  transition: opacity .3s;
+}
+.copy-hint.visible { opacity: 1; }
+
+@media (max-width: 600px) {
+  .wrap { padding: 58px 18px 40px; }
+  .btn-start { width: 100%; }
+  .hud-tr { font-size: .56rem; }
+}
+
+/* доступность фокуса */
+.opt:focus-visible, .chip:focus-visible, .btn:focus-visible, .skip-link:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 3px;
+}
+</style>
+</head>
+<body>
+
+<div class="bg-base"></div>
+<div class="bg-grid"></div>
+
+<div class="hud-corner hc-tl"></div>
+<div class="hud-corner hc-tr"></div>
+<div class="hud-corner hc-bl"></div>
+<div class="hud-corner hc-br"></div>
+<div class="hud hud-tl" id="hudLeft"></div>
+<div class="hud hud-tr" id="hudRight"></div>
+<div class="hud hud-bl"><span class="dot"></span><span class="on">ON</span></div>
+
+<div class="progress-wrap"><div class="progress-fill" id="progress"></div></div>
+
+<div class="wrap" id="wrap">
+
+  <!-- ФАСАД -->
+  <section class="screen facade active" data-screen="facade">
+    <div class="facade-statue hidden" id="heroWrap"><img id="heroImg" src="" alt=""></div>
+    <div class="kicker" id="fKicker"></div>
+    <h1 id="fTitle"></h1>
+    <p class="sub" id="fSub"></p>
+    <p class="support" id="fSupport"></p>
+    <div class="badge" id="badgeFacade"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary btn-start" onclick="start()">
+        <span id="fButton">Начать</span>
+        <svg class="arr" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 9h11M10 4l5 5-5 5"/></svg>
+      </button>
+    </div>
+    <p style="margin-top:18px;font-size:.86rem;color:var(--muted)" id="fFootnote"></p>
+  </section>
+
+  <!-- ВОПРОСЫ рендерятся в #qhost -->
+  <section class="screen" data-screen="question">
+    <div id="qhost"></div>
+  </section>
+
+  <!-- МИКРО-КОММЕНТАРИЙ (после Q4) -->
+  <section class="screen interlude" data-screen="interlude">
+    <div class="il-tag" id="ilTag"></div>
+    <p class="il-text" id="ilText"></p>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="afterInterlude()">
+        <span id="ilButton">Дальше</span>
+        <svg class="arr" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 9h11M10 4l5 5-5 5"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- СБОРКА -->
+  <section class="screen assembly" data-screen="assembly">
+    <div class="asm-ring"></div>
+    <div class="asm-text" id="asmText">Собираю твою карту…</div>
+    <div class="asm-meta" id="asmMeta"></div>
+  </section>
+
+  <!-- ФИНАЛ -->
+  <section class="screen result" data-screen="result">
+    <div id="resHost"></div>
+  </section>
+
+</div>
+
+<div class="fx-scan"></div>
+<div class="fx-grain"></div>
+
+<script>
+/* ============================================================
+   Движок квиза. Весь смысл — в quiz.config.js, здесь только механика.
+   Правь конфиг, а не этот файл.
+   ============================================================ */
+
+const CFG = window.QUIZ_CONFIG || {};
+const QUESTIONS = CFG.questions || [];
+const CLASSES   = CFG.classes   || {};
+const T         = CFG.theme     || {};
+
+// ── Тема: цвета и шрифты из конфига в CSS-переменные ──
+(function applyTheme() {
+  const r = document.documentElement.style;
+  const map = {
+    bg: ['--void', '--void-2'], bg2: ['--graphite'], text: ['--white', '--marble'],
+    muted: ['--muted'], accent: ['--cyan'], accent2: ['--amber', '--amber-hot'],
+    fontHead: ['--font-head'], fontBody: ['--font-body'], fontMono: ['--font-mono'],
+  };
+  for (const [key, vars] of Object.entries(map)) {
+    if (T[key]) vars.forEach(v => r.setProperty(v, T[key]));
+  }
+  // производные от акцентов: линии, карточки, подсветка
+  if (T.accent) {
+    const c = hexToRgb(T.accent);
+    if (c) {
+      r.setProperty('--line',      `rgba(${c},.22)`);
+      r.setProperty('--line-soft', `rgba(${c},.12)`);
+      r.setProperty('--card',      `rgba(${c},.035)`);
+      r.setProperty('--card-hover',`rgba(${c},.07)`);
+      r.setProperty('--cyan-soft', `rgba(${c},.12)`);
+      r.setProperty('--cyan-glow', T.text || '#fff');
+    }
+  }
+  if (T.accent2) {
+    const c = hexToRgb(T.accent2);
+    if (c) r.setProperty('--amber-soft', `rgba(${c},.14)`);
+  }
+  if (T.hud === false) {
+    document.querySelectorAll('.hud, .hud-corner').forEach(el => el.style.display = 'none');
+  } else {
+    setText('hudLeft', T.hudLeft || '');
+    setText('hudRight', T.hudRight || '');
+  }
+  if (T.heroImage) {
+    const w = document.getElementById('heroWrap');
+    document.getElementById('heroImg').src = T.heroImage;
+    w.classList.remove('hidden');
+  }
+})();
+
+function hexToRgb(hex) {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(String(hex).trim());
+  return m ? `${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)}` : null;
+}
+
+function setText(id, val, html) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!val) { el.style.display = 'none'; return; }
+  if (html) el.innerHTML = val; else el.textContent = val;
+}
+
+// ── Тексты страницы из конфига ──
+(function applyCopy() {
+  const m = CFG.meta || {}, f = CFG.facade || {}, il = CFG.interlude || {};
+  if (m.title) { document.title = m.title; }
+  if (m.description) {
+    const d = document.querySelector('meta[name="description"]');
+    if (d) d.setAttribute('content', m.description);
+  }
+  setText('fKicker', f.kicker);
+  setText('fTitle', (f.title || '').replace(/<b>/g, '<span class="amber">').replace(/<\/b>/g, '</span>'), true);
+  setText('fSub', f.sub, true);
+  setText('fSupport', f.support, true);
+  setText('badgeFacade', f.badge);
+  setText('fButton', f.button || 'Начать');
+  setText('fFootnote', f.footnote);
+  setText('ilTag', il.tag);
+  setText('ilText', il.text, true);
+  setText('ilButton', il.button || 'Дальше');
+})();
+
+// ── Состояние ──
+const answers = {};   // id -> значение
+let qIndex = 0;       // индекс текущего вопроса
+let computedClass = null;
+let _sentId = null;   // уникальный quiz_id сессии (генерируется в runAssembly)
+
+const screens = {};
+document.querySelectorAll('.screen').forEach(s => screens[s.dataset.screen] = s);
+const progressEl = document.getElementById('progress');
+
+function show(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setProgress(step, total) {
+  const pct = Math.round((step / total) * 100);
+  progressEl.style.width = pct + '%';
+}
+
+function start() { qIndex = 0; renderQuestion(); }
+
+// ── Рендер вопроса ──
+function renderQuestion() {
+  const q = QUESTIONS[qIndex];
+  setProgress(qIndex + 1, QUESTIONS.length + 1);
+  const host = document.getElementById('qhost');
+  const isLast = qIndex === QUESTIONS.length - 1;
+
+  let body = '';
+  if (q.type === 'single') {
+    body = '<div class="options">' + q.opts.map((o, i) =>
+      `<div class="opt" tabindex="0" role="button" data-i="${i}" data-v="${esc(o.v)}"${o.cls ? ` data-cls="${o.cls}"` : ''} onclick="pickSingle(this)" onkeydown="keyPick(event,this)">
+         <span class="opt-mark"></span><span class="opt-label">${esc(o.v)}</span>
+       </div>`).join('') + '</div>';
+  } else if (q.type === 'chips') {
+    body = '<div class="chips">' + q.opts.map(o =>
+      `<div class="chip" tabindex="0" role="button" data-v="${esc(o)}" onclick="pickChip(this)" onkeydown="keyPick(event,this)">${esc(o)}</div>`
+      ).join('') + '</div>' +
+      `<input type="text" class="field hidden" id="otherInput" placeholder="Впиши свою сферу (по желанию)">`;
+  } else if (q.type === 'text') {
+    body = `<textarea class="field" id="textInput" placeholder="${esc(q.placeholder || '')}"></textarea>`;
+    if (q.sign) body += `<div class="q-sign">${esc(q.sign)}</div>`;
+  }
+
+  const nextLabel = isLast ? 'Собрать мою карту' : 'Дальше';
+  const skip = q.skippable ? `<a class="skip-link" tabindex="0" onclick="nextQuestion(true)" onkeydown="if(event.key==='Enter')nextQuestion(true)">Пропустить</a>` : '';
+  const backBtn = qIndex > 0 ? `<button class="btn btn-ghost" onclick="prevQuestion()">Назад</button>` : '';
+
+  host.innerHTML = `
+    <div class="q-head">
+      <div class="q-counter">Вопрос ${qIndex + 1} <span class="tot">/ ${QUESTIONS.length}</span></div>
+      <h2 class="q-title">${esc(q.title)}</h2>
+      ${q.note ? `<p class="q-note">${esc(q.note)}</p>` : ''}
+    </div>
+    ${body}
+    <div class="q-foot">
+      ${backBtn}
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion(false)">
+        ${nextLabel}
+        <svg class="arr" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 9h11M10 4l5 5-5 5"/></svg>
+      </button>
+      ${skip}
+    </div>`;
+
+  // восстановить выбор
+  restoreSelection(q);
+  show('question');
+}
+
+function restoreSelection(q) {
+  const saved = answers[q.id];
+  if (saved == null) return;
+  if (q.type === 'single') {
+    document.querySelectorAll('#qhost .opt').forEach(el => { if (el.dataset.v === saved) el.classList.add('sel'); });
+  } else if (q.type === 'chips') {
+    let matched = false;
+    document.querySelectorAll('#qhost .chip').forEach(el => { if (el.dataset.v === saved) { el.classList.add('sel'); matched = true; } });
+    if (!matched && saved) {
+      const other = document.querySelector('#qhost .chip[data-v="' + q.other + '"]');
+      if (other) other.classList.add('sel');
+      const inp = document.getElementById('otherInput');
+      inp.classList.remove('hidden'); inp.value = saved;
+    }
+  } else if (q.type === 'text') {
+    const inp = document.getElementById('textInput'); if (inp) inp.value = saved;
+  }
+}
+
+function pickSingle(el) {
+  el.parentNode.querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function pickChip(el) {
+  const q = QUESTIONS[qIndex];
+  el.parentNode.querySelectorAll('.chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  const other = document.getElementById('otherInput');
+  if (el.dataset.v === q.other) { other.classList.remove('hidden'); other.focus(); }
+  else { other.classList.add('hidden'); other.value = ''; }
+}
+function keyPick(e, el) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    if (el.classList.contains('opt')) pickSingle(el); else pickChip(el);
+  }
+}
+
+function captureAnswer(q) {
+  if (q.type === 'single') {
+    const sel = document.querySelector('#qhost .opt.sel');
+    if (!sel) return false;
+    answers[q.id] = sel.dataset.v;
+    if (sel.dataset.cls) answers._classKey = sel.dataset.cls;
+    return true;
+  }
+  if (q.type === 'chips') {
+    const sel = document.querySelector('#qhost .chip.sel');
+    if (!sel) return false;
+    if (sel.dataset.v === q.other) {
+      const other = document.getElementById('otherInput').value.trim();
+      answers[q.id] = other || q.other;   // «Другая» допустима без ввода (ревью: не резать доходимость)
+    } else {
+      answers[q.id] = sel.dataset.v;
+    }
+    return true;
+  }
+  if (q.type === 'text') {
+    const val = document.getElementById('textInput').value.trim();
+    answers[q.id] = val;
+    return true; // текст не обязателен сам по себе; «обязательность» решает skippable на UI
+  }
+  return false;
+}
+
+function flashRequired() {
+  const btn = document.getElementById('nextBtn');
+  if (!btn) return;
+  btn.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(0)'}],{duration:280});
+}
+
+function nextQuestion(skip) {
+  const q = QUESTIONS[qIndex];
+  if (skip) { answers[q.id] = ''; }
+  else {
+    const ok = captureAnswer(q);
+    // single/chips обязательны; text — обязателен только если не skippable
+    if (!ok && (q.type === 'single' || q.type === 'chips')) { flashRequired(); return; }
+    if (q.type === 'text' && !q.skippable && !answers[q.id]) { flashRequired(); return; }
+  }
+
+  if (q.interludeAfter) { show('interlude'); return; }
+  advance();
+}
+
+function afterInterlude() { advance(); }
+
+function advance() {
+  if (qIndex < QUESTIONS.length - 1) { qIndex++; renderQuestion(); }
+  else { runAssembly(); }
+}
+
+function prevQuestion() {
+  if (qIndex > 0) { qIndex--; renderQuestion(); }
+  else { show('facade'); setProgress(0, 1); }
+}
+
+// ── Сборка карты (2 сек + ждём ответа intake) ──
+function runAssembly() {
+  setProgress(QUESTIONS.length + 1, QUESTIONS.length + 1);
+  computedClass = answers._classKey || 'orchestra';
+
+  // Генерируем quiz_id один раз за сессию (B2): 5 chars timestamp + 3 chars random = 8 alnum.
+  // P2-4: padEnd(3,'0') гарантирует суффикс ≥3 символа даже при Math.random()→0.
+  if (!_sentId) {
+    _sentId = Date.now().toString(36).slice(-5) +
+              Math.random().toString(36).slice(2, 5).padEnd(3, '0');
+  }
+
+  const marks = QUESTIONS.map(q => {
+    const val = answers[q.id];
+    if (!val) return null;
+    const opt = (q.opts || []).find(o => (o && o.v) === val);
+    return (opt && opt.short) || (q.type === 'chips' ? val : null);
+  }).filter(Boolean).slice(0, 3);
+  const line = (CFG.assembly && CFG.assembly.line) || 'Собираю картину: {a}…';
+  document.getElementById('asmText').textContent =
+    line.replace('{a}', marks.join(' × ') || 'твои ответы');
+  show('assembly');
+
+  const meta = document.getElementById('asmMeta');
+  const steps = (CFG.assembly && CFG.assembly.steps) || ['читаю ответы…', 'подбираю связки…', 'готово.'];
+  let si = 0; meta.textContent = steps[0];
+  const tick = setInterval(() => { si++; if (steps[si]) meta.textContent = steps[si]; }, 480);
+
+  // Ждём и intake, и минимальную анимацию (2.1 сек), но не дольше 5 сек (деградация)
+  const intakePromise = sendAnswers();
+  const intakeRace = Promise.race([
+    intakePromise,
+    new Promise(r => setTimeout(() => r(null), 5000)),
+  ]);
+  const minDelay = new Promise(r => setTimeout(r, 2100));
+
+  Promise.all([intakeRace, minDelay]).then(([intakeRes]) => {
+    clearInterval(tick);
+    renderResult(intakeRes);    // intakeRes = {ok, quiz_id, klass, track, vk_link} | null
+  });
+}
+
+// ── Финал ──
+function renderResult(intakeRes) {
+  const c = CLASSES[computedClass] || Object.values(CLASSES)[0];
+  const host = document.getElementById('resHost');
+  const R = CFG.result || {};
+  const D = CFG.destination || {};
+
+  // Ссылка на диалог с ботом. Код квиза уезжает параметром — по нему бот
+  // поднимет ответы этого человека и начнёт с разбора, а не со «здравствуйте».
+  const quizCode = _sentId || '';
+  const botHref = (() => {
+    // приёмник вернул готовую ссылку — она главнее (там уже подставлен код)
+    if (intakeRes && intakeRes.link) return intakeRes.link;
+    const base = D.url || '#';
+    if (!quizCode || !D.codeParam) return base;
+    return base + (base.includes('?') ? '&' : '?') + D.codeParam + '=' + encodeURIComponent(quizCode);
+  })();
+
+  // эхо его слов: боль плюс задача-текст. Человек видит себя дословно
+  const painQ = QUESTIONS.find(q => q.interludeAfter);
+  const taskQ = QUESTIONS.find(q => q.type === 'text');
+  const pain = painQ ? (answers[painQ.id] || '') : '';
+  const task = taskQ ? (answers[taskQ.id] || '') : '';
+  let echo = '';
+  if (pain || task) {
+    const parts = [];
+    if (pain) parts.push(`«<em>${esc(pain.toLowerCase())}</em>»`);
+    if (task) parts.push(`задача — «<em>${esc(task)}</em>»`);
+    echo = `<div class="res-echo-quote"><span class="lbl">${esc(R.echoLabel || 'В твоих ответах прозвучало')}</span>${parts.join(' · ')}</div>`;
+  }
+
+  const bundles = c.bundles.map((b, i) =>
+    `<div class="bundle"><div class="num">0${i + 1}</div><div class="b-body"><span class="when">${esc(b.when)}</span><b>${esc(b.t)}</b></div></div>`
+  ).join('');
+
+  const ctaText = (R.ctaText || 'Разбор под класс «{class}» готов. Нажми — пришлю его в переписке.')
+                    .replace('{class}', esc(c.name));
+
+  const phoneBlock = CFG.askPhone === false ? '' : `
+      <div class="cta-remind"><a tabindex="0" onclick="toggleRemind()" onkeydown="if(event.key==='Enter')toggleRemind()">${esc(R.remindLink || 'не сейчас — напомните позже')}</a></div>
+      <div class="remind-box hidden" id="remindBox">
+        <input type="tel" class="field" id="remindPhone" placeholder="+7 (___) ___-__-__">
+        <button class="btn btn-ghost" onclick="saveRemind()">${esc(R.remindButton || 'Напомнить')}</button>
+      </div>
+      <div class="remind-ok hidden" id="remindOk">${esc(R.remindDone || 'Готово.')}</div>`;
+
+  host.innerHTML = `
+    <div class="res-reveal">${esc(R.revealLabel || '// ЧТО У ТЕБЯ ПРОИСХОДИТ')}</div>
+    <div class="res-echo">
+      <span class="echo-ghost g2">${esc(c.name)}</span>
+      <span class="echo-ghost g1">${esc(c.name)}</span>
+      <div class="res-class">${esc(c.name)}</div>
+    </div>
+    <p class="res-lead">${esc(c.lead)}</p>
+    ${echo}
+    <div class="bundles-h">${esc(R.bundlesLabel || '// ЧТО ЗАКРЫВАЕТСЯ ПЕРВЫМ')}</div>
+    <div class="bundles">${bundles}</div>
+    <p class="res-story">${esc(c.story)}</p>
+
+    <div class="cta-zone">
+      <div class="cta-stacy"><div>${ctaText}</div></div>
+      <a class="btn btn-primary btn-cta" href="${esc(botHref)}" target="_blank" rel="noopener"
+         onclick="trackCTA(); tryCopyCode();">
+        ${esc(R.ctaButton || 'Забрать разбор')}
+        <svg class="arr" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 9h11M10 4l5 5-5 5"/></svg>
+      </a>
+      ${quizCode ? `
+      <p class="cta-code">${esc(R.fallbackNote || 'Если разбор не пришёл за минуту — напиши в чат код')} <strong>${esc(quizCode)}</strong></p>
+      <span class="copy-hint" id="copyHint">код скопирован</span>` : ''}
+      ${phoneBlock}
+    </div>
+
+    ${R.footer ? `<div class="res-fix">${esc(R.footer)}</div>` : ''}`;
+
+  show('result');
+}
+
+// ── Отправка ответов приёмнику ──
+const LS_KEY = 'quiz_pending_' + (CFG.funnelId || 'default');
+const QUIZ_ENDPOINT = (CFG.intake && CFG.intake.endpoint) || '/api/quiz';
+
+/**
+ * Ответы уезжают приёмнику как Q1..QN — по порядку вопросов в конфиге.
+ * Порядок держим неслучайно: Q1 сегмент · Q2 сфера · Q4 боль · Q5 что берёт первым ·
+ * Q6 размер · Q7 задача текстом. Бот рассчитывает именно на это.
+ */
+function buildPayload() {
+  const out = {};
+  QUESTIONS.forEach((q, i) => { out['Q' + (i + 1)] = answers[q.id] || ''; });
+  const phoneEl = document.getElementById('remindPhone');
+  return {
+    quiz_id: _sentId,
+    klass:   computedClass || '',
+    name:    '',
+    phone:   answers.phone || (phoneEl ? phoneEl.value.trim() : '') || '',
+    answers: out,
+    // расшифровка: какой ключ каким вопросом был. Приёмнику для логов и разбора
+    keys: QUESTIONS.map((q, i) => ({ k: 'Q' + (i + 1), id: q.id, title: q.title })),
+    funnel: CFG.funnelId || 'default',
+  };
+}
+
+async function postOnce(data, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms || 8000);
+  try {
+    const r = await fetch(QUIZ_ENDPOINT, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data), signal: ctrl.signal, keepalive: true,
+    });
+    if (!r.ok) return null;
+    return await r.json();   // {ok, quiz_id, klass, track, vk_link}
+  } catch (e) { return null; } finally { clearTimeout(t); }
+}
+
+async function sendWithRetry(data, n) {
+  for (let i = 0; i < n; i++) {
+    // P1-4: явный таймаут ≤4s < intakeRace(5s) — первый round-trip успевает вернуть vk_link
+    // до того как Promise.race заменяет его на null и renderResult идёт через VK_FALLBACK_URL.
+    const res = await postOnce(data, 4000);
+    if (res && res.ok) return res;
+    if (i < n - 1) await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i)));
+  }
+  return null;
+}
+
+/**
+ * sendAnswers — async, возвращает Promise<{ok, vk_link, ...}|null>.
+ * Первый вызов — из runAssembly (ждём результат для CTA).
+ * Повторные (CTA-клик, телефон) — fire-and-forget, return value игнорируется.
+ */
+async function sendAnswers() {
+  const data = buildPayload();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch (e) {}
+  const res = await sendWithRetry(data, (CFG.intake && CFG.intake.retries) || 4);
+  if (res) { try { localStorage.removeItem(LS_KEY); } catch(e) {} }
+  return res;
+}
+
+// автокопирование quiz_id при клике CTA (B4)
+function tryCopyCode() {
+  if (!_sentId || !navigator.clipboard) return;
+  navigator.clipboard.writeText(_sentId).then(() => {
+    const hint = document.getElementById('copyHint');
+    if (!hint) return;
+    hint.classList.add('visible');
+    setTimeout(() => hint.classList.remove('visible'), 2500);
+  }).catch(() => {});
+}
+
+function toggleRemind() { document.getElementById('remindBox').classList.toggle('hidden'); }
+function saveRemind() {
+  const phone = document.getElementById('remindPhone').value.trim();
+  if (phone) { answers.phone = phone; sendAnswers(); }
+  document.getElementById('remindBox').classList.add('hidden');
+  document.getElementById('remindOk').classList.remove('hidden');
+}
+function trackCTA() { try { sendAnswers(); } catch(e){} }
+
+// дослать недоставленную заявку прошлого визита (localStorage → flushPending)
+(function flushPending(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) postOnce(JSON.parse(raw)).then(res => { if (res && res.ok) localStorage.removeItem(LS_KEY); });
+  } catch (e) {}
+})();
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
