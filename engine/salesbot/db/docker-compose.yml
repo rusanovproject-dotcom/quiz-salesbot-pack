@@ -1,0 +1,36 @@
+# База под журнал заявок. Поднимается рядом с приёмником, на том же сервере.
+#
+#   cd engine/salesbot/db
+#   printf 'POSTGRES_USER=quiz\nPOSTGRES_PASSWORD=<длинный_пароль>\nPOSTGRES_DB=quiz\n' > .env
+#   docker compose up -d
+#
+# Пароль — только буквы и цифры: он встаёт в DB_URL, символы @ : / ? ломают адрес.
+# На СВЕЖЕМ томе схема накатится сама (schema.sql смонтирован в initdb ниже).
+# На уже живой базе initdb не срабатывает — накатывай руками:
+#   docker compose exec -T db psql -U quiz -d quiz < schema.sql
+#
+# Порт открыт ТОЛЬКО на 127.0.0.1 — снаружи в базу не постучаться. Уберёшь
+# «127.0.0.1:» из ports — и через сутки в таблице будут чужие руки: Postgres
+# с простым паролем сканеры находят за часы.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-quiz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задай пароль в .env}
+      POSTGRES_DB: ${POSTGRES_DB:-quiz}
+    ports:
+      - "127.0.0.1:5432:5432"        # только локальная петля, не 0.0.0.0
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro   # автонакат на свежем томе
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-quiz} -d ${POSTGRES_DB:-quiz}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:

@@ -20,6 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import card as cardmod
 import config as cfg
+import storage_db
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s",
                     datefmt="%H:%M:%S")
@@ -97,6 +98,10 @@ def ingest(payload: dict, store: str) -> dict:
         return existing
 
     saved = cardmod.update(store, fresh["quiz_id"], mutator)
+    # Второй экземпляр в базу, если она настроена. Карточка-файл уже на диске:
+    # база тут журнал, а не источник правды. Пишем в фоне — ответ квизу не ждёт
+    # базу вовсе: фронт ждёт ~4 секунды, а недоступный хост ест пять на connect.
+    storage_db.save_lead_async(saved)
     log.info("принято %s · сфера=%r · телефон=%s", saved["quiz_id"],
              (saved.get("answers") or {}).get("Q2", ""), cardmod.mask_phone(saved.get("phone", "")))
     return {"ok": True, "quiz_id": saved["quiz_id"], "klass": saved.get("klass", ""),

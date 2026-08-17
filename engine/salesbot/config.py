@@ -39,6 +39,11 @@ def _json_env(key: str, default):
 # ── Куда складываются карточки. ВНЕ репозитория: там персональные данные ──
 LEADS_DIR = os.path.expanduser(os.getenv("LEADS_DIR", "~/quiz-leads"))
 
+# ── Журнал заявок в базе (необязательный слой) ──
+# Пусто → заявки живут только файлами, как раньше. Заполнено → каждая заявка
+# дублируется в Postgres. Формат: postgresql://пользователь:пароль@хост:порт/база
+DB_URL = os.getenv("DB_URL", "").strip()
+
 # ── Транспорт ──
 VK_TOKEN = os.getenv("VK_TOKEN", "")
 VK_GROUP_ID = os.getenv("VK_GROUP_ID", "")
