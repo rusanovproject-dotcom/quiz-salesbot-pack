@@ -14,25 +14,29 @@
 
 :root {
   /* Цвета приезжают из quiz.config.js → theme. Здесь — запасные значения,
-     если конфиг не загрузился. Правь конфиг, не этот блок. */
+     если конфиг не загрузился. Правь конфиг, не этот блок.
+
+     Прозрачные оттенки акцентов НИГДЕ не пишутся числами: только
+     rgba(var(--accent-rgb), альфа). Иначе дефолтная бирюза пробивается
+     сквозь чужую палитру — фон, свечение выбора, кольцо фокуса. */
   --void:        #04080A;
   --void-2:      #06070B;
   --graphite:    #101216;
   --cyan:        #3FD8E0;
-  --cyan-deep:   #1A5A66;
   --cyan-glow:   #DBFCFF;
   --amber:       #FF7A2F;
   --amber-hot:   #FFB061;
-  --amber-deep:  #C24A12;
   --white:       #F2FEFF;
   --marble:      #C8CDD5;
   --muted:       #6A7A80;
-  --line:        rgba(63,216,224,.22);
-  --line-soft:   rgba(63,216,224,.12);
-  --card:        rgba(63,216,224,.035);
-  --card-hover:  rgba(63,216,224,.07);
-  --cyan-soft:   rgba(63,216,224,.12);
-  --amber-soft:  rgba(255,122,47,.14);
+  --accent-rgb:  63,216,224;   /* = --cyan,  applyTheme() пересчитает из theme.accent */
+  --accent2-rgb: 255,122,47;   /* = --amber, applyTheme() пересчитает из theme.accent2 */
+  --line:        rgba(var(--accent-rgb),.22);
+  --line-soft:   rgba(var(--accent-rgb),.12);
+  --card:        rgba(var(--accent-rgb),.035);
+  --card-hover:  rgba(var(--accent-rgb),.07);
+  --cyan-soft:   rgba(var(--accent-rgb),.12);
+  --amber-soft:  rgba(var(--accent2-rgb),.14);
   --font-head:   'Oswald';
   --font-body:   'Space Grotesk';
   --font-mono:   'JetBrains Mono';
@@ -57,9 +61,9 @@ body {
 .bg-base {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 50% at 78% 8%, rgba(63,216,224,.10) 0%, transparent 62%),
-    radial-gradient(ellipse 50% 50% at 12% 96%, rgba(255,122,47,.07) 0%, transparent 60%),
-    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(63,216,224,.03) 0%, transparent 70%);
+    radial-gradient(ellipse 70% 50% at 78% 8%, rgba(var(--accent-rgb),.10) 0%, transparent 62%),
+    radial-gradient(ellipse 50% 50% at 12% 96%, rgba(var(--accent2-rgb),.07) 0%, transparent 60%),
+    radial-gradient(ellipse 90% 60% at 50% 50%, rgba(var(--accent-rgb),.03) 0%, transparent 70%);
 }
 .bg-grid {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 0; pointer-events: none;
@@ -108,12 +112,12 @@ body {
 /* === Прогресс === */
 .progress-wrap {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  height: 3px; background: rgba(63,216,224,.10);
+  height: 3px; background: rgba(var(--accent-rgb),.10);
 }
 .progress-fill {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, var(--cyan), var(--amber));
-  box-shadow: 0 0 16px rgba(63,216,224,.5);
+  box-shadow: 0 0 16px rgba(var(--accent-rgb),.5);
   transition: width .55s var(--ease);
 }
 
@@ -135,7 +139,7 @@ body {
 .badge {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 7px 15px; border-radius: var(--radius-pill);
-  background: var(--amber-soft); border: 1px solid rgba(255,122,47,.32);
+  background: var(--amber-soft); border: 1px solid rgba(var(--accent2-rgb),.32);
   font-size: .76rem; font-weight: 500; color: var(--amber-hot);
   width: fit-content; letter-spacing: .01em;
   font-family: var(--font-mono), monospace;
@@ -151,7 +155,7 @@ body {
 }
 .facade-statue::before {  /* холодное свечение за статуёй */
   content: ''; position: absolute; inset: -8% -10% -8% -2%;
-  background: radial-gradient(ellipse 60% 55% at 52% 40%, rgba(63,216,224,.22) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 55% at 52% 40%, rgba(var(--accent-rgb),.22) 0%, transparent 70%);
   filter: blur(4px); z-index: -1;
 }
 .facade-statue img {
@@ -199,9 +203,9 @@ h1 .amber { color: var(--amber); }
 .btn-primary {
   background: var(--amber); color: #1a0c03;
   padding: 16px 34px; font-size: 1.04rem;
-  box-shadow: 0 6px 26px rgba(255,122,47,.32);
+  box-shadow: 0 6px 26px rgba(var(--accent2-rgb),.32);
 }
-.btn-primary:hover { background: var(--amber-hot); transform: translateY(-2px); box-shadow: 0 10px 34px rgba(255,122,47,.42); }
+.btn-primary:hover { background: var(--amber-hot); transform: translateY(-2px); box-shadow: 0 10px 34px rgba(var(--accent2-rgb),.42); }
 .btn-primary:active { transform: translateY(0); }
 .btn-primary .arr { transition: transform .25s var(--ease); }
 .btn-primary:hover .arr { transform: translateX(4px); }
@@ -209,7 +213,7 @@ h1 .amber { color: var(--amber); }
   background: transparent; color: var(--cyan);
   border: 1px solid var(--line); padding: 14px 26px; font-size: .95rem; font-weight: 500;
 }
-.btn-ghost:hover { background: var(--cyan-soft); border-color: rgba(63,216,224,.4); }
+.btn-ghost:hover { background: var(--cyan-soft); border-color: rgba(var(--accent-rgb),.4); }
 .btn-row { display: flex; gap: 12px; align-items: center; margin-top: 30px; flex-wrap: wrap; }
 .btn-start { padding: 18px 40px; font-size: 1.1rem; }
 
@@ -236,7 +240,7 @@ h1 .amber { color: var(--amber); }
   min-height: 56px; position: relative;
 }
 .opt:hover { background: var(--card-hover); border-color: var(--line); transform: translateX(2px); }
-.opt.sel { background: var(--cyan-soft); border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 22px rgba(63,216,224,.12); }
+.opt.sel { background: var(--cyan-soft); border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan), 0 0 22px rgba(var(--accent-rgb),.12); }
 .opt-mark {
   width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
   border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center;
@@ -269,7 +273,7 @@ h1 .amber { color: var(--amber); }
   outline: none; -webkit-appearance: none;
 }
 .field::placeholder { color: var(--muted); }
-.field:focus { border-color: var(--cyan); background: var(--card-hover); box-shadow: 0 0 0 3px rgba(63,216,224,.1); }
+.field:focus { border-color: var(--cyan); background: var(--card-hover); box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.1); }
 textarea.field { resize: vertical; min-height: 92px; line-height: 1.5; }
 .hidden { display: none !important; }
 
@@ -324,7 +328,7 @@ textarea.field { resize: vertical; min-height: 92px; line-height: 1.5; }
 .res-echo .echo-ghost {
   font-family: var(--font-head), sans-serif; font-weight: 700; text-transform: uppercase;
   font-size: clamp(2rem, 8vw, 3.4rem); line-height: .96; letter-spacing: -.01em;
-  color: transparent; -webkit-text-stroke: 1px rgba(63,216,224,.22); position: absolute; left: 0; top: 0;
+  color: transparent; -webkit-text-stroke: 1px rgba(var(--accent-rgb),.22); position: absolute; left: 0; top: 0;
 }
 .res-echo .echo-ghost.g1 { transform: translateY(10px); opacity: .5; }
 .res-echo .echo-ghost.g2 { transform: translateY(20px); opacity: .25; }
@@ -356,7 +360,7 @@ textarea.field { resize: vertical; min-height: 92px; line-height: 1.5; }
 }
 .bundle .num {
   font-family:var(--font-mono), monospace; font-size: .8rem; color: var(--amber); flex-shrink: 0;
-  border: 1px solid rgba(255,122,47,.4); border-radius: 7px; width: 30px; height: 30px;
+  border: 1px solid rgba(var(--accent2-rgb),.4); border-radius: 7px; width: 30px; height: 30px;
   display:flex; align-items:center; justify-content:center; margin-top: 1px;
 }
 .bundle .b-body { font-size: .96rem; line-height: 1.5; }
@@ -514,21 +518,19 @@ const T         = CFG.theme     || {};
   for (const [key, vars] of Object.entries(map)) {
     if (T[key]) vars.forEach(v => r.setProperty(v, T[key]));
   }
-  // производные от акцентов: линии, карточки, подсветка
+  // Производные от акцентов — линии, карточки, свечения, кольцо фокуса, фон страницы —
+  // собраны в CSS из --accent-rgb / --accent2-rgb. Отсюда достаточно подменить сам
+  // тройной код цвета: всё, что от него зависит, пересчитается само.
   if (T.accent) {
     const c = hexToRgb(T.accent);
     if (c) {
-      r.setProperty('--line',      `rgba(${c},.22)`);
-      r.setProperty('--line-soft', `rgba(${c},.12)`);
-      r.setProperty('--card',      `rgba(${c},.035)`);
-      r.setProperty('--card-hover',`rgba(${c},.07)`);
-      r.setProperty('--cyan-soft', `rgba(${c},.12)`);
+      r.setProperty('--accent-rgb', c);
       r.setProperty('--cyan-glow', T.text || '#fff');
     }
   }
   if (T.accent2) {
     const c = hexToRgb(T.accent2);
-    if (c) r.setProperty('--amber-soft', `rgba(${c},.14)`);
+    if (c) r.setProperty('--accent2-rgb', c);
   }
   if (T.hud === false) {
     document.querySelectorAll('.hud, .hud-corner').forEach(el => el.style.display = 'none');

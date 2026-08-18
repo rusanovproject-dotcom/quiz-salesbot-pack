@@ -224,10 +224,9 @@ def test_живая_база_дополняет_карточку_а_не_зат�
     qid = "t" + os.urandom(3).hex()
     try:
         with open(СХЕМА, encoding="utf-8") as f:
-            # по одному запросу за раз — так ведут себя оба драйвера одинаково
-            for stmt in (s.strip() for s in f.read().split(";")):
-                if stmt:
-                    cur.execute(stmt)
+            # файл целиком одним execute: резать по точкам с запятой опасно —
+            # символ «;» внутри комментария или тела функции ломает нарезку
+            cur.execute(f.read())
         conn.commit()
 
         первый = карточка(quiz_id=qid, phone="", answers={"Q1": "работаю сам", "Q2": "ремонт"})
