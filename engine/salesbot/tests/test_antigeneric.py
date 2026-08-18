@@ -70,8 +70,27 @@ def test_канцелярит_ловится_всегда_мимо_кастом�
     assert any("канцелярит" in f for f in flags)
 
 
-def test_шаблон_рядом_со_скриптом_существует_и_подхватывается():
-    """Ученик должен увидеть файл, а не догадаться о нём."""
+def test_шаблон_рядом_со_скриптом_приезжает_без_живых_фраз():
+    """Ученик должен увидеть файл, но НЕ получить чужие фразы как свои.
+
+    Живые фразы в шаблоне скрипт считает списком владельца: проверка зелёная,
+    а гейта нет. Поэтому в шаблоне они закомментированы.
+    """
+    assert os.path.exists(ag.CUSTOM_FILE)
     generic, source = ag.load_generic()
-    assert source.endswith("antigeneric-custom.txt")
-    assert len(generic) >= 5
+    assert source == "встроенный список"
+    assert generic == ag.GENERIC
+
+
+def test_встроенный_список_предупреждает_про_чужую_нишу():
+    """Молчаливый фолбэк = ученик думает, что защищён."""
+    warning = ag.generic_warning("встроенный список")
+    assert "чужой ниши" in warning
+    assert "antigeneric-custom.txt" in warning
+
+
+def test_свой_список_не_предупреждает():
+    with tempfile.TemporaryDirectory() as d:
+        path = _файл(d, "отдай в мастерскую\nпочини сам\n")
+        _, source = ag.load_generic(path)
+        assert ag.generic_warning(source) == ""

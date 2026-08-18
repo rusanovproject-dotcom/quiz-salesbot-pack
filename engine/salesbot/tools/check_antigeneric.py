@@ -44,6 +44,18 @@ def load_generic(path: str | None = None) -> tuple[list[str], str]:
     return (phrases, label) if phrases else (GENERIC, "встроенный список")
 
 
+def generic_warning(source: str) -> str:
+    """Предупреждение, когда работаем на встроенном списке.
+
+    Молчать тут нельзя: «ЧИСТО» на чужих фразах читается как «я защищён»,
+    хотя проверки не было вовсе.
+    """
+    if source != "встроенный список":
+        return ""
+    return ("ВНИМАНИЕ: детектор работает по списку чужой ниши — впиши 5-7 пустых советов "
+            "своей ниши в antigeneric-custom.txt, иначе проверка зелёная на любом тексте")
+
+
 def check_reply(text: str, generic: list[str] | None = None) -> list[str]:
     t = (text or "").lower()
     flags = []
@@ -66,7 +78,9 @@ def main():
         raise SystemExit("как звать: python3 tools/check_antigeneric.py /tmp/live.json")
     data = json.load(open(sys.argv[1], encoding="utf-8"))
     generic, source = load_generic()
-    print(f"пустые советы: {source} — фраз {len(generic)}\n")
+    print(f"пустые советы: {source} — фраз {len(generic)}")
+    warning = generic_warning(source)
+    print(f"{warning}\n" if warning else "")
     bad = 0
     for persona in data:
         for turn in persona["turns"]:
