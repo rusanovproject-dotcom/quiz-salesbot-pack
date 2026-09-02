@@ -21,14 +21,18 @@
 - `unknown` — ⚪ достоверность ещё не определена.
 
 Опровержение не является статусом: оно хранится в `refutations` как отдельная
-запись с `recorded_at` и `reason`. Поэтому 🔴 никогда не означает «опровергнуто».
+запись с `recorded_at` и `reason`. `recorded_at` — строгий RFC 3339 `date-time`:
+дата и время разделены `T`, у времени обязателен timezone (`Z` либо `±HH:MM`).
+Поэтому 🔴 никогда не означает «опровергнуто».
 
 ## Состояние и гейты
 
 Граф гейтов фиксирован: `FunnelFit → Factura → Offer → Meaning → QuizPreview →
 SellerPreview → LocalVerify → ProductionReadiness`. Поле `gate` принимает
 только одно из этих имён. Оси `phase`, `gate_status`, `technical_readiness` и
-`market_readiness` проверяются раздельно.
+`market_readiness` проверяются раздельно. `prototype_only` допустим только на
+оси `technical_readiness`: это рабочий прототип, не фаза и не гейт; он никогда
+не даёт релизный `PASS`.
 
 `release_verdict` выводится валидатором, а не принимается из файла. `PASS`
 возможен только для `RELEASE` на `ProductionReadiness`, когда гейт и обе
@@ -42,12 +46,14 @@ SellerPreview → LocalVerify → ProductionReadiness`. Поле `gate` прин
 Каждая имеет стабильные `code`, JSON Pointer `path` и понятное `message`.
 Список всегда отсортирован лексикографически по `(path, code, message)`.
 
-| Код | Значение |
-| --- | --- |
-| `E_INVALID_JSON` | Файл не является UTF-8 JSON. |
-| `E_UNKNOWN_SCHEMA_VERSION` | Версия не поддерживается. |
-| `E_REQUIRED_FIELD` | Нет обязательного поля или раздела. |
-| `E_INVALID_TYPE` | Значение имеет неверный тип. |
-| `E_INVALID_FORMAT` | Значение не соответствует формату контракта. |
-| `E_INVALID_ENUM` | Значение вне закрытого списка. |
-| `E_UNKNOWN_FIELD` | Поле отсутствует в контракте v1. |
+| Условие | Code | JSON Pointer pattern |
+| --- | --- | --- |
+| JSON-файл не читается как UTF-8 JSON | `E_INVALID_JSON` | `/` |
+| Отсутствует поле верхнего уровня | `E_REQUIRED_FIELD` | `/{field}` |
+| Отсутствует раздел brief | `E_REQUIRED_FIELD` | `/sections/{section}` |
+| Отсутствует поле факта или опровержения | `E_REQUIRED_FIELD` | `/facts/{index}/{field}` или `/facts/{index}/refutations/{index}/{field}` |
+| Значение имеет неверный JSON-тип | `E_INVALID_TYPE` | путь самого поля, включая `/schema_version`, `/{axis}` и пути facts |
+| `recorded_at` не RFC 3339 date-time | `E_INVALID_FORMAT` | `/facts/{index}/refutations/{index}/recorded_at` |
+| Строковая schema version не поддержана | `E_UNKNOWN_SCHEMA_VERSION` | `/schema_version` |
+| Строковое значение вне закрытого списка | `E_INVALID_ENUM` | `/phase`, `/gate`, `/gate_status`, `/technical_readiness`, `/market_readiness`, `/facts/{index}/status` |
+| Поле не описано v1 | `E_UNKNOWN_FIELD` | `/{field}`, `/sections/{field}`, `/facts/{index}/{field}` или `/facts/{index}/refutations/{index}/{field}` |

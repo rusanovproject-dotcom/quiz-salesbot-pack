@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schema_version", "sections", "facts"],
   "properties": {
-    "schema_version": {"const": "funnel-brief/v1"},
+    "schema_version": {"type": "string", "const": "funnel-brief/v1"},
     "sections": {
       "type": "object",
       "additionalProperties": false,

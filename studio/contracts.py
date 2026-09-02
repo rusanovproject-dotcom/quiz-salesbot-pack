@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import json
 from pathlib import Path
+import re
 from typing import Any, Mapping
 
 
@@ -34,8 +35,12 @@ GATE_NAMES = (
 )
 PHASES = ("DISCOVERY", "DESIGN", "BUILD", "VALIDATION", "RELEASE")
 GATE_STATUSES = ("NOT_STARTED", "IN_PROGRESS", "PASS", "BLOCKED")
-READINESS_STATUSES = ("NOT_READY", "IN_PROGRESS", "PASS", "BLOCKED")
+TECHNICAL_READINESS_STATUSES = ("prototype_only", "NOT_READY", "IN_PROGRESS", "PASS", "BLOCKED")
+MARKET_READINESS_STATUSES = ("NOT_READY", "IN_PROGRESS", "PASS", "BLOCKED")
 REQUIRED_BRIEF_SECTIONS = ("audience", "boundaries", "business", "offer", "voice")
+RFC3339_DATETIME = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
 
 
 @dataclass(frozen=True)
@@ -99,8 +104,14 @@ def validate_state(payload: Any) -> ValidationResult:
     _validate_enum(payload, "phase", PHASES, "/phase", errors)
     _validate_enum(payload, "gate", GATE_NAMES, "/gate", errors)
     _validate_enum(payload, "gate_status", GATE_STATUSES, "/gate_status", errors)
-    _validate_enum(payload, "technical_readiness", READINESS_STATUSES, "/technical_readiness", errors)
-    _validate_enum(payload, "market_readiness", READINESS_STATUSES, "/market_readiness", errors)
+    _validate_enum(
+        payload,
+        "technical_readiness",
+        TECHNICAL_READINESS_STATUSES,
+        "/technical_readiness",
+        errors,
+    )
+    _validate_enum(payload, "market_readiness", MARKET_READINESS_STATUSES, "/market_readiness", errors)
     return _state_result(errors, payload)
 
 
@@ -160,9 +171,12 @@ def _validate_refutation(value: Any, path: str, errors: list[ValidationError]) -
 
 
 def _validate_version(payload: Mapping[str, Any], expected: str, errors: list[ValidationError]) -> None:
-    value = payload.get("schema_version")
-    if value is None:
+    if "schema_version" not in payload:
         errors.append(_error("E_REQUIRED_FIELD", "/schema_version", "Версия схемы обязательна."))
+        return
+    value = payload["schema_version"]
+    if not isinstance(value, str):
+        errors.append(_error("E_INVALID_TYPE", "/schema_version", "Версия схемы должна быть строкой."))
     elif value != expected:
         errors.append(_error("E_UNKNOWN_SCHEMA_VERSION", "/schema_version", f"Поддерживается только {expected}."))
 
@@ -170,6 +184,8 @@ def _validate_version(payload: Mapping[str, Any], expected: str, errors: list[Va
 def _validate_enum(payload: Mapping[str, Any], name: str, allowed: tuple[str, ...], path: str, errors: list[ValidationError]) -> None:
     if name not in payload:
         errors.append(_error("E_REQUIRED_FIELD", path, "Обязательное поле отсутствует."))
+    elif not isinstance(payload[name], str):
+        errors.append(_error("E_INVALID_TYPE", path, "Значение должно быть строкой."))
     elif payload[name] not in allowed:
         errors.append(_error("E_INVALID_ENUM", path, "Недопустимое значение."))
 
@@ -236,6 +252,8 @@ def _error(code: str, path: str, message: str) -> ValidationError:
 
 
 def _is_iso_datetime(value: str) -> bool:
+    if RFC3339_DATETIME.fullmatch(value) is None:
+        return False
     try:
         datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
