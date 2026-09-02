@@ -1,0 +1,11 @@
+{
+  "schema_version": "funnel-brief/v1",
+  "sections": {
+    "business": {},
+    "audience": {},
+    "offer": {},
+    "voice": {},
+    "boundaries": {}
+  },
+  "facts": []
+}

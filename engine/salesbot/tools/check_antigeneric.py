@@ -6,27 +6,63 @@
 
     python3 tools/check_antigeneric.py /tmp/live.json
 """
-import json, sys
+import json, os, sys
 
-# Канцелярит и обороты, по которым машинный текст виден сразу
+# Канцелярит и обороты, по которым машинный текст виден сразу.
+# Он от ниши не зависит — поэтому встроенный и никаким файлом не отключается
 FORBIDDEN = ["в современном мире", "стоит отметить", "давайте разбер", "раскрой потенциал",
              "комплексный подход", "важно понимать", "в эпоху", "как известно",
              "не просто", "ключевую роль", "неотъемлем"]
 
-# Советы, которые подходят кому угодно. Их наличие = разбор не про человека
+# Советы, которые подходят кому угодно. Их наличие = разбор не про человека.
+# ЭТО ЗАПАСНОЙ список, и он из чужой ниши. В твоей нише пустые советы другие —
+# впиши их в tools/antigeneric-custom.txt, иначе гейт зелёный на любом тексте
 GENERIC = ["начни с chatgpt", "изучай нейросети", "используй нейросети", "автоматизируй процессы",
            "оптимизируй бизнес-процессы", "внедри crm", "начни вести соцсети"]
+
+CUSTOM_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "antigeneric-custom.txt")
 
 MAX_LEN = 600
 
 
-def check_reply(text: str) -> list[str]:
+def load_generic(path: str | None = None) -> tuple[list[str], str]:
+    """Список пустых советов и откуда он взят.
+
+    Файл рядом со скриптом: по строке на фразу, «#» — комментарий. Есть в нём
+    хоть одна фраза — работаем по нему, встроенный не подмешиваем. Нет файла или
+    в нём одни комментарии — остаётся встроенный, чтобы не проверять пустым списком.
+    """
+    label = path or "tools/antigeneric-custom.txt"
+    path = CUSTOM_FILE if path is None else path
+    try:
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return GENERIC, "встроенный список"
+
+    phrases = [s.strip().lower() for s in lines if s.strip() and not s.strip().startswith("#")]
+    return (phrases, label) if phrases else (GENERIC, "встроенный список")
+
+
+def generic_warning(source: str) -> str:
+    """Предупреждение, когда работаем на встроенном списке.
+
+    Молчать тут нельзя: «ЧИСТО» на чужих фразах читается как «я защищён»,
+    хотя проверки не было вовсе.
+    """
+    if source != "встроенный список":
+        return ""
+    return ("ВНИМАНИЕ: детектор работает по списку чужой ниши — впиши 5-7 пустых советов "
+            "своей ниши в antigeneric-custom.txt, иначе проверка зелёная на любом тексте")
+
+
+def check_reply(text: str, generic: list[str] | None = None) -> list[str]:
     t = (text or "").lower()
     flags = []
     for p in FORBIDDEN:
         if p in t:
             flags.append(f"канцелярит: «{p}»")
-    for p in GENERIC:
+    for p in (GENERIC if generic is None else generic):
         if p in t:
             flags.append(f"пустой совет: «{p}»")
     if t.count("это не ") >= 2:
@@ -41,10 +77,14 @@ def main():
     if len(sys.argv) < 2:
         raise SystemExit("как звать: python3 tools/check_antigeneric.py /tmp/live.json")
     data = json.load(open(sys.argv[1], encoding="utf-8"))
+    generic, source = load_generic()
+    print(f"пустые советы: {source} — фраз {len(generic)}")
+    warning = generic_warning(source)
+    print(f"{warning}\n" if warning else "")
     bad = 0
     for persona in data:
         for turn in persona["turns"]:
-            flags = check_reply(turn.get("reply", ""))
+            flags = check_reply(turn.get("reply", ""), generic)
             if flags:
                 bad += 1
                 print(f"[{persona['id']}] шаг {turn['step']}: {'; '.join(flags)}")

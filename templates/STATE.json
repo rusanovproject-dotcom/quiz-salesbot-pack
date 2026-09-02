@@ -1,0 +1,8 @@
+{
+  "schema_version": "state/v1",
+  "phase": "DISCOVERY",
+  "gate": "FunnelFit",
+  "gate_status": "NOT_STARTED",
+  "technical_readiness": "prototype_only",
+  "market_readiness": "NOT_READY"
+}
