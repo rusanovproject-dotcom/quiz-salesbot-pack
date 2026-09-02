@@ -216,6 +216,23 @@ def test_schema_and_validator_share_nested_brief_shapes_and_constraints():
         ("E_INVALID_TYPE", "/sections"),
     ]
 
+    non_object_fact = minimal_brief()
+    non_object_fact["facts"] = [[]]
+    assert [(error.code, error.path) for error in validate_brief(non_object_fact).errors] == [
+        ("E_INVALID_TYPE", "/facts/0"),
+    ]
+
+    non_object_refutation = minimal_brief()
+    non_object_refutation["facts"] = [{
+        "id": "fact-1",
+        "statement": "Текст",
+        "status": "unknown",
+        "refutations": [[]],
+    }]
+    assert [(error.code, error.path) for error in validate_brief(non_object_refutation).errors] == [
+        ("E_INVALID_TYPE", "/facts/0/refutations/0"),
+    ]
+
     wrong_nested_types = minimal_brief()
     wrong_nested_types["sections"]["business"] = []
     wrong_nested_types["facts"] = [{
