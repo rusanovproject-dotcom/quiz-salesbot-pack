@@ -1,6 +1,6 @@
 ---
 name: build-salesbot
-description: Use when... утверждённый brief и QuizPreview готовы к локальной сборке и полигону SellerPreview.
+description: Use when утверждённый brief и QuizPreview готовы к локальной сборке и полигону SellerPreview.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

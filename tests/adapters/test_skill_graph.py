@@ -128,7 +128,8 @@ def test_all_legacy_methodology_has_one_canonical_owner_and_valid_frontmatter():
         fields = _frontmatter(path)
         assert fields["name"].replace("-", "").isalnum()
         assert fields["name"].isascii()
-        assert fields["description"].startswith("Use when...")
+        assert fields["description"].startswith("Use when ")
+        assert "..." not in fields["description"]
 
 
 def test_preflight_declares_the_ordered_graph_and_only_resolvable_skill_references():
@@ -172,7 +173,12 @@ def test_claude_and_codex_adapters_declare_one_identical_public_contract():
         "artifact_root": ARTIFACT_ROOT,
         "artifacts": ARTIFACTS,
         "stop_conditions": STOP_CONDITIONS,
-        "trigger_map": (("хочу квиз", "preflight"), ("собери воронку", "preflight")),
+        "trigger_map": (
+            ("хочу квиз", "preflight"),
+            ("собери воронку", "preflight"),
+            ("собери мне квиз-воронку", "preflight"),
+            ("ии-продажник", "preflight"),
+        ),
     }
     assert set(claude["refs"]) <= _skill_names()
 
@@ -194,7 +200,10 @@ def test_adapters_are_thin_discovery_and_invocation_surfaces():
         assert "skills/preflight/skill.md" in body
 
 
-@pytest.mark.parametrize("intent", ["хочу квиз", "собери воронку"])
+@pytest.mark.parametrize(
+    "intent",
+    ["хочу квиз", "собери воронку", "собери мне квиз-воронку", "ии-продажник"],
+)
 def test_pressure_intents_have_the_same_fail_closed_first_outcome(intent: str):
     """Catches a legacy trigger that enters Phase 0 or writes root PROJECT.md in one client."""
     outcomes = []

@@ -1,6 +1,6 @@
 ---
 name: audience-factura
-description: Use when... после интервью нужно сверить фактуру ЦА, статусы достоверности и клиентские цитаты до оффера.
+description: Use when после интервью нужно сверить фактуру ЦА, статусы достоверности и клиентские цитаты до оффера.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

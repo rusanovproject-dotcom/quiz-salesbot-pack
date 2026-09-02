@@ -1,6 +1,6 @@
 ---
 name: quiz-meaning
-description: Use when... утверждённый Offer нужно развить в исходы, вопросы и проверяемое смысловое ядро квиза.
+description: Use when утверждённый Offer нужно развить в исходы, вопросы и проверяемое смысловое ядро квиза.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

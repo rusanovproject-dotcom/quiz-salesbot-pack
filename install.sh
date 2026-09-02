@@ -62,6 +62,8 @@ mkdir -p "$DEST"
 # 1a. Канон: всё дерево пака, кроме git-служебного и личных файлов
 ( cd "$PACK" && find . -type f \
     ! -path "./.git/*" ! -name ".DS_Store" ! -name "install.sh" \
+    ! -path "./projects/*" ! -name ".env" ! -name "config.env" ! -name "*.pem" \
+    ! -path "*/leads/*" ! -path "*/quiz-leads/*" ! -name "*.leads.json" \
     ! -path "./examples/*/config.env" | sort ) | while IFS= read -r rel; do
   rel="${rel#./}"
   if printf '%s\n' "$PERSONAL" | grep -qx "$rel"; then

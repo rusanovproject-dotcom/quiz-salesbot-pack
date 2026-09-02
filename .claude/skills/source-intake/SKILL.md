@@ -1,6 +1,6 @@
 ---
 name: source-intake
-description: Use when... нужно принять материалы владельца или legacy PROJECT.md и подготовить единый FUNNEL-BRIEF без выдуманных фактов.
+description: Use when нужно принять материалы владельца или legacy PROJECT.md и подготовить единый FUNNEL-BRIEF без выдуманных фактов.
 phase: source-intake
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 artifacts: FUNNEL-BRIEF.md, FUNNEL-BRIEF.meta.json, STATE.json, events.jsonl, quiz/, salesbot/, reports/

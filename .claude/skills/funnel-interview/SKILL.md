@@ -1,6 +1,6 @@
 ---
 name: funnel-interview
-description: Use when... источников недостаточно и владельца нужно интервьюировать для FunnelFit и FUNNEL-BRIEF.
+description: Use when источников недостаточно и владельца нужно интервьюировать для FunnelFit и FUNNEL-BRIEF.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

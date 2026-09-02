@@ -1,6 +1,6 @@
 ---
 name: wordstat-mining
-description: Use when... после source intake нужен реальный региональный язык спроса из Wordstat до сборки оффера.
+description: Use when после source intake нужен реальный региональный язык спроса из Wordstat до сборки оффера.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

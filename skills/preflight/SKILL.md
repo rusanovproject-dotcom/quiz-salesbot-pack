@@ -1,6 +1,6 @@
 ---
 name: preflight
-description: Use when... человек просит начать, собрать воронку или квиз и нужен безопасный единый вход в Funnel Studio.
+description: Use when человек просит начать, собрать воронку, квиз или ИИ-продажника и нужен безопасный единый вход в Funnel Studio.
 phase: preflight
 public-phases: preflight, source-intake, FunnelFit, Factura, Offer, Meaning, QuizPreview, SellerPreview, LocalVerify, ProductionReadiness, verify-funnel
 gate-graph: FunnelFit, Factura, Offer, Meaning, QuizPreview, SellerPreview, LocalVerify, ProductionReadiness
@@ -21,12 +21,25 @@ deployment-policy: never
 `PROJECT.md` и не записывай доменную фактуру в `engine/`, `examples/` или
 `playbook/`.
 
-Сначала проверь наличие четырёх контрактных артефактов: `FUNNEL-BRIEF.md`,
-`FUNNEL-BRIEF.meta.json`, `STATE.json`, `events.jsonl`. Если экземпляра ещё нет,
-остановись на одном следующем действии — безопасной инициализации через
-проектный слой `studio`; сам не собирай каталоги вручную.
+Сначала определи `project_slug` и `funnel_slug`. Если пользователь их ещё не
+подтвердил, спроси название проекта, затем название воронки — строго по одному
+вопросу. Предложи безопасные латинские slug, покажи будущий путь и получи явное
+подтверждение.
 
-Дальше передай управление `source-intake`. После него веди только по графу:
+Для нового и для существующего экземпляра всегда выполняй из корня пака одну и
+ту же идемпотентную проверку-инициализацию:
+
+```bash
+python3 scripts/init-funnel.py --project <project_slug> --funnel <funnel_slug>
+```
+
+Она создаст новый экземпляр либо проверит ownership markers и полноту уже
+существующего. Не принимай каталог за валидный только по наличию четырёх файлов
+и не собирай каталоги вручную. Если команда завершилась ошибкой, остановись,
+объясни её простым языком и не переходи к следующему гейту.
+
+После успешной инициализации передай управление `source-intake`. После него веди
+только по графу:
 
 `FunnelFit → Factura → Offer → Meaning → QuizPreview → SellerPreview → LocalVerify → ProductionReadiness`.
 

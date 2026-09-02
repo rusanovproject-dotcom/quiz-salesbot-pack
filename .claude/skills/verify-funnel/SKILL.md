@@ -1,6 +1,6 @@
 ---
 name: verify-funnel
-description: Use when... нужно локально проверить артефакты гейта или готовность воронки без публикации и внешних сервисов.
+description: Use when нужно локально проверить артефакты гейта или готовность воронки без публикации и внешних сервисов.
 phase: verify-funnel
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 artifacts: FUNNEL-BRIEF.md, FUNNEL-BRIEF.meta.json, STATE.json, events.jsonl, quiz/, salesbot/, reports/

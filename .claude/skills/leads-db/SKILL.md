@@ -1,6 +1,6 @@
 ---
 name: leads-db
-description: Use when... готовую воронку проверяют на сохранность заявок, Postgres, бэкап и сквозной путь перед ProductionReadiness.
+description: Use when готовую воронку проверяют на сохранность заявок, Postgres, бэкап и сквозной путь перед ProductionReadiness.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

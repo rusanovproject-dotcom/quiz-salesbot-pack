@@ -1,6 +1,6 @@
 ---
 name: quiz-design
-description: Use when... локальный QuizPreview готов к визуальной упаковке, скриншотам и проверке стартового экрана.
+description: Use when локальный QuizPreview готов к визуальной упаковке, скриншотам и проверке стартового экрана.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only

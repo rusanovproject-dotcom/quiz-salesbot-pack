@@ -1,6 +1,6 @@
 ---
 name: quiz-offer
-description: Use when... подтверждённую фактуру и язык спроса нужно превратить в проверяемый оффер входа.
+description: Use when подтверждённую фактуру и язык спроса нужно превратить в проверяемый оффер входа.
 artifact-root: projects/<project_slug>/funnels/<funnel_slug>/
 contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only
