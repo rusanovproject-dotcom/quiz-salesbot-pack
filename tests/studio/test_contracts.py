@@ -186,6 +186,70 @@ def test_schema_and_validator_share_versions_shapes_enums_and_closed_objects():
         assert state_properties[name]["type"] == "string"
 
 
+def test_schema_and_validator_share_nested_brief_shapes_and_constraints():
+    """Ловит drift required/type/minLength в sections, facts и refutations."""
+    root = Path(__file__).resolve().parents[2]
+    brief_schema = json.loads((root / "schemas/funnel-brief-v1.json").read_text())
+    sections_schema = brief_schema["properties"]["sections"]
+    facts_schema = brief_schema["properties"]["facts"]
+    fact_schema = facts_schema["items"]
+    refutations_schema = fact_schema["properties"]["refutations"]
+    refutation_schema = refutations_schema["items"]
+
+    assert sections_schema["type"] == "object"
+    assert facts_schema["type"] == "array"
+    assert all(section["type"] == "object" for section in sections_schema["properties"].values())
+    assert fact_schema["type"] == "object"
+    assert tuple(fact_schema["required"]) == ("id", "statement", "status")
+    assert fact_schema["properties"]["id"] == {"type": "string", "minLength": 1}
+    assert fact_schema["properties"]["statement"] == {"type": "string", "minLength": 1}
+    assert fact_schema["properties"]["status"]["type"] == "string"
+    assert refutations_schema["type"] == "array"
+    assert refutation_schema["type"] == "object"
+    assert tuple(refutation_schema["required"]) == ("recorded_at", "reason")
+    assert refutation_schema["properties"]["reason"] == {"type": "string", "minLength": 1}
+
+    wrong_containers = minimal_brief()
+    wrong_containers.update(sections=[], facts={})
+    assert [(error.code, error.path) for error in validate_brief(wrong_containers).errors] == [
+        ("E_INVALID_TYPE", "/facts"),
+        ("E_INVALID_TYPE", "/sections"),
+    ]
+
+    wrong_nested_types = minimal_brief()
+    wrong_nested_types["sections"]["business"] = []
+    wrong_nested_types["facts"] = [{
+        "id": 1,
+        "statement": "",
+        "status": 1,
+        "refutations": [{"recorded_at": 1, "reason": ""}],
+    }]
+    assert [(error.code, error.path) for error in validate_brief(wrong_nested_types).errors] == [
+        ("E_INVALID_TYPE", "/facts/0/id"),
+        ("E_INVALID_FORMAT", "/facts/0/refutations/0/reason"),
+        ("E_INVALID_TYPE", "/facts/0/refutations/0/recorded_at"),
+        ("E_INVALID_FORMAT", "/facts/0/statement"),
+        ("E_INVALID_TYPE", "/facts/0/status"),
+        ("E_INVALID_TYPE", "/sections/business"),
+    ]
+
+    empty_status = minimal_brief()
+    empty_status["facts"] = [{"id": "fact-1", "statement": "Текст", "status": ""}]
+    assert [(error.code, error.path) for error in validate_brief(empty_status).errors] == [
+        ("E_INVALID_ENUM", "/facts/0/status"),
+    ]
+
+    missing_nested_fields = minimal_brief()
+    missing_nested_fields["facts"] = [{"refutations": [{}]}]
+    assert [(error.code, error.path) for error in validate_brief(missing_nested_fields).errors] == [
+        ("E_REQUIRED_FIELD", "/facts/0/id"),
+        ("E_REQUIRED_FIELD", "/facts/0/refutations/0/reason"),
+        ("E_REQUIRED_FIELD", "/facts/0/refutations/0/recorded_at"),
+        ("E_REQUIRED_FIELD", "/facts/0/statement"),
+        ("E_REQUIRED_FIELD", "/facts/0/status"),
+    ]
+
+
 def test_validator_reports_type_before_version_or_enum_and_rejects_extra_fields():
     """Ловит диагностику enum для значений, которые schema сначала считает не-строкой."""
     brief = minimal_brief()

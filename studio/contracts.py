@@ -138,14 +138,9 @@ def _validate_fact(value: Any, path: str, errors: list[ValidationError]) -> None
         errors.append(_error("E_INVALID_TYPE", path, "Факт должен быть объектом."))
         return
     _reject_unknown_fields(value, {"id", "statement", "status", "refutations"}, path, errors)
-    for field_name in ("id", "statement", "status"):
-        field_path = f"{path}/{field_name}"
-        if field_name not in value:
-            errors.append(_error("E_REQUIRED_FIELD", field_path, "Обязательное поле отсутствует."))
-        elif not isinstance(value[field_name], str) or not value[field_name]:
-            errors.append(_error("E_INVALID_TYPE", field_path, "Поле должно быть непустой строкой."))
-    if "status" in value and isinstance(value["status"], str) and value["status"] not in FACT_STATUSES:
-        errors.append(_error("E_INVALID_ENUM", f"{path}/status", "Недопустимый статус факта."))
+    _validate_nonempty_string(value, "id", f"{path}/id", errors)
+    _validate_nonempty_string(value, "statement", f"{path}/statement", errors)
+    _validate_enum(value, "status", FACT_STATUSES, f"{path}/status", errors)
     if "refutations" in value:
         refutations = value["refutations"]
         if not isinstance(refutations, list):
@@ -160,14 +155,8 @@ def _validate_refutation(value: Any, path: str, errors: list[ValidationError]) -
         errors.append(_error("E_INVALID_TYPE", path, "Опровержение должно быть объектом."))
         return
     _reject_unknown_fields(value, {"recorded_at", "reason"}, path, errors)
-    for field_name in ("recorded_at", "reason"):
-        field_path = f"{path}/{field_name}"
-        if field_name not in value:
-            errors.append(_error("E_REQUIRED_FIELD", field_path, "Обязательное поле отсутствует."))
-        elif not isinstance(value[field_name], str) or not value[field_name]:
-            errors.append(_error("E_INVALID_TYPE", field_path, "Поле должно быть непустой строкой."))
-    if "recorded_at" in value and isinstance(value["recorded_at"], str) and value["recorded_at"] and not _is_iso_datetime(value["recorded_at"]):
-        errors.append(_error("E_INVALID_FORMAT", f"{path}/recorded_at", "Ожидается ISO 8601 date-time."))
+    _validate_datetime(value, "recorded_at", f"{path}/recorded_at", errors)
+    _validate_nonempty_string(value, "reason", f"{path}/reason", errors)
 
 
 def _validate_version(payload: Mapping[str, Any], expected: str, errors: list[ValidationError]) -> None:
@@ -188,6 +177,24 @@ def _validate_enum(payload: Mapping[str, Any], name: str, allowed: tuple[str, ..
         errors.append(_error("E_INVALID_TYPE", path, "Значение должно быть строкой."))
     elif payload[name] not in allowed:
         errors.append(_error("E_INVALID_ENUM", path, "Недопустимое значение."))
+
+
+def _validate_nonempty_string(payload: Mapping[str, Any], name: str, path: str, errors: list[ValidationError]) -> None:
+    if name not in payload:
+        errors.append(_error("E_REQUIRED_FIELD", path, "Обязательное поле отсутствует."))
+    elif not isinstance(payload[name], str):
+        errors.append(_error("E_INVALID_TYPE", path, "Значение должно быть строкой."))
+    elif not payload[name]:
+        errors.append(_error("E_INVALID_FORMAT", path, "Строка не должна быть пустой."))
+
+
+def _validate_datetime(payload: Mapping[str, Any], name: str, path: str, errors: list[ValidationError]) -> None:
+    if name not in payload:
+        errors.append(_error("E_REQUIRED_FIELD", path, "Обязательное поле отсутствует."))
+    elif not isinstance(payload[name], str):
+        errors.append(_error("E_INVALID_TYPE", path, "Значение должно быть строкой."))
+    elif not _is_iso_datetime(payload[name]):
+        errors.append(_error("E_INVALID_FORMAT", path, "Ожидается ISO 8601 date-time."))
 
 
 def _required_object(payload: Mapping[str, Any], name: str, path: str, errors: list[ValidationError]) -> Mapping[str, Any] | None:

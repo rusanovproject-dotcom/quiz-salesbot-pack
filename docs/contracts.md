@@ -53,7 +53,7 @@ SellerPreview → LocalVerify → ProductionReadiness`. Поле `gate` прин
 | Отсутствует раздел brief | `E_REQUIRED_FIELD` | `/sections/{section}` |
 | Отсутствует поле факта или опровержения | `E_REQUIRED_FIELD` | `/facts/{index}/{field}` или `/facts/{index}/refutations/{index}/{field}` |
 | Значение имеет неверный JSON-тип | `E_INVALID_TYPE` | путь самого поля, включая `/schema_version`, `/{axis}` и пути facts |
-| `recorded_at` не RFC 3339 date-time | `E_INVALID_FORMAT` | `/facts/{index}/refutations/{index}/recorded_at` |
+| Строка с `minLength: 1` пуста либо `recorded_at` не RFC 3339 date-time | `E_INVALID_FORMAT` | `/facts/{index}/id`, `/facts/{index}/statement`, `/facts/{index}/refutations/{index}/reason` или `/facts/{index}/refutations/{index}/recorded_at` |
 | Строковая schema version не поддержана | `E_UNKNOWN_SCHEMA_VERSION` | `/schema_version` |
 | Строковое значение вне закрытого списка | `E_INVALID_ENUM` | `/phase`, `/gate`, `/gate_status`, `/technical_readiness`, `/market_readiness`, `/facts/{index}/status` |
 | Поле не описано v1 | `E_UNKNOWN_FIELD` | `/{field}`, `/sections/{field}`, `/facts/{index}/{field}` или `/facts/{index}/refutations/{index}/{field}` |
