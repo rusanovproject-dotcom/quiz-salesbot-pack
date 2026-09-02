@@ -367,3 +367,147 @@ def test_symlinked_funnel_marker_is_rejected_without_reading_outside(tmp_path):
         _init(tmp_path)
 
     assert outside.is_file()
+
+
+@pytest.mark.parametrize("scope", ["project", "funnel"])
+@pytest.mark.parametrize("collision", ["empty_directory", "symlink"])
+def test_atomic_publish_never_replaces_racing_final_target(
+    tmp_path, scope, collision
+):
+    """Ловит ordinary rename, заменяющий race-created final target."""
+    from studio.errors import PathCollisionError
+
+    if scope == "funnel":
+        _init(tmp_path, funnel="first")
+        target = tmp_path / "projects/alpha/funnels/second"
+        funnel = "second"
+    else:
+        target = tmp_path / "projects/alpha"
+        funnel = "main"
+
+    outside = tmp_path / f"outside-{scope}-{collision}"
+    outside.mkdir()
+    sentinel = outside / "sentinel"
+    sentinel.write_bytes(b"outside bytes")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    foreign_sibling = target.parent / f"foreign-{scope}"
+    foreign_sibling.mkdir()
+    foreign_bytes = foreign_sibling / "manual.bin"
+    foreign_bytes.write_bytes(b"keep sibling")
+    planted: dict[str, object] = {}
+
+    def create_collision(stage: str) -> None:
+        if stage != "before_publish":
+            return
+        if collision == "empty_directory":
+            target.mkdir()
+        else:
+            target.symlink_to(outside, target_is_directory=True)
+        metadata = os.lstat(target)
+        planted["identity"] = (metadata.st_dev, metadata.st_ino)
+        planted["link"] = os.readlink(target) if target.is_symlink() else None
+
+    with pytest.raises(PathCollisionError):
+        _init(tmp_path, funnel=funnel, fault_hook=create_collision)
+
+    metadata = os.lstat(target)
+    assert (metadata.st_dev, metadata.st_ino) == planted["identity"]
+    assert (os.readlink(target) if target.is_symlink() else None) == planted["link"]
+    assert sentinel.read_bytes() == b"outside bytes"
+    assert foreign_bytes.read_bytes() == b"keep sibling"
+    if scope == "project":
+        assert list((tmp_path / "projects").glob(".alpha.project-staging-*")) == []
+    else:
+        assert list(target.parent.glob(".second.staging-*")) == []
+
+
+def test_directory_publish_backend_contract_maps_collision_and_preserves_errors(tmp_path):
+    """Ловит потерю EEXIST mapping или swallowing non-collision backend error."""
+    from studio.errors import PathCollisionError
+    from studio.project_layout import _publish_directory_no_replace
+
+    class Backend:
+        def __init__(self, outcome=None):
+            self.outcome = outcome
+            self.calls = []
+
+        def publish(self, source_parent, source, target_parent, target):
+            self.calls.append((source_parent, source, target_parent, target))
+            if self.outcome is not None:
+                raise self.outcome
+
+    parent_fd = os.open(tmp_path, os.O_RDONLY)
+    try:
+        available = Backend()
+        _publish_directory_no_replace(parent_fd, "stage", "target", backend=available)
+        assert available.calls == [(parent_fd, "stage", parent_fd, "target")]
+
+        collision = Backend(FileExistsError("occupied"))
+        with pytest.raises(PathCollisionError, match="target"):
+            _publish_directory_no_replace(parent_fd, "stage", "target", backend=collision)
+
+        broken = Backend(OSError("backend failed"))
+        with pytest.raises(OSError, match="backend failed"):
+            _publish_directory_no_replace(parent_fd, "stage", "target", backend=broken)
+    finally:
+        os.close(parent_fd)
+
+
+def test_unsupported_publish_platform_fails_closed_without_renaming(tmp_path):
+    """Ловит ordinary rename fallback на platform без exclusive primitive."""
+    from studio.errors import AtomicPublishUnavailableError
+    from studio.project_layout import (
+        _PlatformDirectoryPublishBackend,
+        _publish_directory_no_replace,
+    )
+
+    stage = tmp_path / "stage"
+    target = tmp_path / "target"
+    stage.mkdir()
+    target.mkdir()
+    stage_identity = os.lstat(stage).st_ino
+    target_identity = os.lstat(target).st_ino
+    parent_fd = os.open(tmp_path, os.O_RDONLY)
+    try:
+        backend = _PlatformDirectoryPublishBackend(platform="unsupported")
+        with pytest.raises(AtomicPublishUnavailableError, match="unsupported"):
+            _publish_directory_no_replace(parent_fd, "stage", "target", backend=backend)
+    finally:
+        os.close(parent_fd)
+
+    assert os.lstat(stage).st_ino == stage_identity
+    assert os.lstat(target).st_ino == target_identity
+
+
+@pytest.mark.parametrize(
+    ("platform", "function_name", "exclusive_flag"),
+    [
+        ("linux", "renameat2", 1),
+        ("darwin", "renameatx_np", 0x00000004),
+    ],
+)
+def test_platform_publish_backend_uses_only_exclusive_rename_primitive(
+    platform, function_name, exclusive_flag
+):
+    """Ловит wrong syscall/flag или ordinary rename fallback в platform backend."""
+    from studio.project_layout import _PlatformDirectoryPublishBackend
+
+    class Function:
+        def __init__(self):
+            self.calls = []
+            self.argtypes = None
+            self.restype = None
+
+        def __call__(self, *args):
+            self.calls.append(args)
+            return 0
+
+    function = Function()
+    library = type("Library", (), {function_name: function})()
+    backend = _PlatformDirectoryPublishBackend(platform=platform, library=library)
+
+    backend.publish(10, "stage", 11, "target")
+
+    assert function.calls == [(10, b"stage", 11, b"target", exclusive_flag)]
+    assert function.argtypes is not None
+    assert function.restype is not None

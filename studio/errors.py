@@ -30,6 +30,10 @@ class InvalidProjectTemplateError(StudioStorageError):
     """A package template is unreadable or violates its U1 contract."""
 
 
+class AtomicPublishUnavailableError(StudioStorageError):
+    """The platform has no supported atomic no-replace directory primitive."""
+
+
 class CorruptStateError(StudioStorageError):
     """STATE.json cannot be decoded or does not satisfy its contract."""
 

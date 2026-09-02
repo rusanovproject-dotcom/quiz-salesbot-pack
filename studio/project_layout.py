@@ -2,17 +2,21 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+import ctypes
 from dataclasses import dataclass
+import errno
 import json
 import os
 from pathlib import Path
 import re
 import stat
-from typing import Any, Callable, Iterator, Mapping
+import sys
+from typing import Any, Callable, Iterator, Mapping, Protocol
 import uuid
 
 from studio.contracts import validate_brief, validate_state
 from studio.errors import (
+    AtomicPublishUnavailableError,
     IncompleteProjectError,
     InvalidProjectTemplateError,
     InvalidSlugError,
@@ -45,6 +49,75 @@ _REQUIRED_FUNNEL_LEAVES = (
     "events.jsonl",
     _FUNNEL_MARKER,
 )
+
+
+class DirectoryPublishBackend(Protocol):
+    """Narrow primitive for one atomic no-replace directory publication."""
+
+    def publish(
+        self,
+        source_parent: int,
+        source: str,
+        target_parent: int,
+        target: str,
+    ) -> None: ...
+
+
+class _PlatformDirectoryPublishBackend:
+    """Linux/WSL and macOS exclusive rename syscalls; all else fails closed."""
+
+    def __init__(self, *, platform: str | None = None, library: Any = None) -> None:
+        self.platform = platform or sys.platform
+        self.library = library
+
+    def publish(
+        self,
+        source_parent: int,
+        source: str,
+        target_parent: int,
+        target: str,
+    ) -> None:
+        if self.platform.startswith("linux"):
+            function_name = "renameat2"
+            exclusive_flag = 1  # RENAME_NOREPLACE
+        elif self.platform == "darwin":
+            function_name = "renameatx_np"
+            exclusive_flag = 0x00000004  # RENAME_EXCL
+        else:
+            raise AtomicPublishUnavailableError(
+                f"atomic no-replace directory publish is unsupported on {self.platform}"
+            )
+
+        library = self.library or ctypes.CDLL(None, use_errno=True)
+        function = getattr(library, function_name, None)
+        if function is None:
+            raise AtomicPublishUnavailableError(
+                f"atomic no-replace directory publish primitive {function_name} is unavailable"
+            )
+        function.argtypes = [
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_int,
+            ctypes.c_char_p,
+            ctypes.c_uint,
+        ]
+        function.restype = ctypes.c_int
+        ctypes.set_errno(0)
+        result = function(
+            source_parent,
+            os.fsencode(source),
+            target_parent,
+            os.fsencode(target),
+            exclusive_flag,
+        )
+        if result == 0:
+            return
+        error_number = ctypes.get_errno() or errno.EIO
+        if error_number in (errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP):
+            raise AtomicPublishUnavailableError(
+                f"atomic no-replace directory publish is unsupported: {os.strerror(error_number)}"
+            )
+        raise OSError(error_number, os.strerror(error_number), target)
 
 
 @dataclass(frozen=True)
@@ -185,7 +258,7 @@ def _create_new_project(
             os.fsync(project_fd)
         hook("before_publish")
         _assert_path_identity(root, root_identity)
-        os.rename(stage, project_slug, src_dir_fd=root_fd, dst_dir_fd=root_fd)
+        _publish_directory_no_replace(root_fd, stage, project_slug)
         os.fsync(root_fd)
         hook("after_publish")
         return paths
@@ -215,7 +288,7 @@ def _create_funnel_in_existing_project(
         hook("before_publish")
         _assert_path_identity(root, root_identity)
         _assert_path_identity(project_root, project_identity)
-        os.rename(stage, funnel_slug, src_dir_fd=funnels_fd, dst_dir_fd=funnels_fd)
+        _publish_directory_no_replace(funnels_fd, stage, funnel_slug)
         os.fsync(funnels_fd)
         hook("after_publish")
         return paths
@@ -344,6 +417,24 @@ def _create_or_open_root(root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     if root.is_symlink():
         raise UnsafeFilesystemEntryError(f"projects root cannot be a symlink: {root}")
+
+
+def _publish_directory_no_replace(
+    parent: int,
+    source: str,
+    target: str,
+    *,
+    backend: DirectoryPublishBackend | None = None,
+) -> None:
+    publisher = backend or _PlatformDirectoryPublishBackend()
+    try:
+        publisher.publish(parent, source, parent, target)
+    except FileExistsError as exc:
+        raise PathCollisionError(f"publish target already exists: {target}") from exc
+    except OSError as exc:
+        if exc.errno in (errno.EEXIST, errno.ENOTEMPTY):
+            raise PathCollisionError(f"publish target already exists: {target}") from exc
+        raise
 
 
 @contextmanager
