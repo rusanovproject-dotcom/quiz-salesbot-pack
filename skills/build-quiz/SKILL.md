@@ -6,7 +6,6 @@ contracts: funnel-brief/v1, state/v1, studio-snapshot/v1, studio-event/v1
 domain-write-policy: project-artifacts-only
 input-policy: approved-funnel-brief-revision-only
 ---
-<!-- GENERATED from skills/build-quiz/SKILL.md by scripts/check-adapters.sh --write. DO NOT EDIT. -->
 
 # Сборка квиза
 
