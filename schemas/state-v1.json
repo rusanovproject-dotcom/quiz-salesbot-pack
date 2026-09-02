@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "state-v1.json",
+  "title": "Funnel Studio state v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "phase", "gate", "gate_status", "technical_readiness", "market_readiness"],
+  "properties": {
+    "schema_version": {"const": "state/v1"},
+    "phase": {"type": "string", "enum": ["DISCOVERY", "DESIGN", "BUILD", "VALIDATION", "RELEASE"]},
+    "gate": {"type": "string", "enum": ["FunnelFit", "Factura", "Offer", "Meaning", "QuizPreview", "SellerPreview", "LocalVerify", "ProductionReadiness"]},
+    "gate_status": {"type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "PASS", "BLOCKED"]},
+    "technical_readiness": {"type": "string", "enum": ["NOT_READY", "IN_PROGRESS", "PASS", "BLOCKED"]},
+    "market_readiness": {"type": "string", "enum": ["NOT_READY", "IN_PROGRESS", "PASS", "BLOCKED"]}
+  }
+}

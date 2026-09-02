@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "funnel-brief-v1.json",
+  "title": "Funnel Brief metadata v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "sections", "facts"],
+  "properties": {
+    "schema_version": {"const": "funnel-brief/v1"},
+    "sections": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["business", "audience", "offer", "voice", "boundaries"],
+      "properties": {
+        "business": {"type": "object"},
+        "audience": {"type": "object"},
+        "offer": {"type": "object"},
+        "voice": {"type": "object"},
+        "boundaries": {"type": "object"}
+      }
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "status"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "statement": {"type": "string", "minLength": 1},
+          "status": {
+            "type": "string",
+            "enum": ["confirmed", "owner_hypothesis", "synthetic", "unknown"]
+          },
+          "refutations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["recorded_at", "reason"],
+              "properties": {
+                "recorded_at": {"type": "string", "format": "date-time"},
+                "reason": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
